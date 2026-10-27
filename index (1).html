@@ -1,0 +1,2829 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PitchMetrics</title>
+<meta name="description" content="PitchMetrics is an independent research project that predicts Premier League match outcomes from public statistics and publishes how accurate the predictions turn out to be.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PitchMetrics">
+<meta property="og:description" content="PitchMetrics is an independent research project that predicts Premier League match outcomes from public statistics and publishes how accurate the predictions turn out to be.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%230f6b4c%22%20stroke-width%3D%221.8%22%3E%3Crect%20x%3D%221.8%22%20y%3D%224.8%22%20width%3D%2220.4%22%20height%3D%2214.4%22%20rx%3D%221.6%22%2F%3E%3Cpath%20d%3D%22M12%204.8v14.4M1.8%209.2h3.2v5.6H1.8M22.2%209.2H19v5.6h3.2%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%222.6%22%2F%3E%3C%2Fsvg%3E">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<style id="pm-style">/* Layout: a research report on a 1120px grid. Serif headings, a neutral text face and tabular numbers;
+   hairline rules carry the structure, and boxes are kept for individual matches and the analysis panel.
+   Blue = home, amber = away, grey = draw; pitch green is the project's only accent. */
+:root{
+  color-scheme:light;
+  --bg:#f6f7f5; --surface:#ffffff; --surface-2:#eff2ee;
+  --ink:#131a16; --ink-2:#38423d; --muted:#5d6762; --faint:#88918c;
+  --line:#e0e5e0; --line-2:#c9d1ca;
+  --accent:#0f6b4c; --accent-hover:#0a583e; --accent-ink:#ffffff; --accent-soft:#e2efe8;
+  --home:#2160a8; --away:#b9670e; --draw:#8d9591;
+  --good:#127a50; --bad:#b42318; --warn:#7f5400; --warn-bg:#fbf0d4;
+  --win:#2f9e6c; --win-ink:#07130d; --loss:#b42318; --loss-ink:#ffffff;
+  --shade:rgba(19,26,22,.04);
+  --serif:"Newsreader","Charter","Bitstream Charter",Georgia,"Times New Roman",serif;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --radius:8px; --header-h:60px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#0f1412; --surface:#161c19; --surface-2:#1c2420;
+  --ink:#e8ece9; --ink-2:#c3cbc6; --muted:#97a29c; --faint:#6f7a74;
+  --line:#253029; --line-2:#36423b;
+  --accent:#5dbb91; --accent-hover:#76c9a3; --accent-ink:#07130d; --accent-soft:#1a2b23;
+  --home:#6fa6ec; --away:#e3a050; --draw:#8e9893;
+  --good:#5dbb91; --bad:#f08076; --warn:#e5b95c; --warn-bg:#2a2414;
+  --win:#4aa87e; --win-ink:#07130d; --loss:#bd4536; --loss-ink:#ffffff;
+  --shade:rgba(255,255,255,.04);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1412; --surface:#161c19; --surface-2:#1c2420;
+  --ink:#e8ece9; --ink-2:#c3cbc6; --muted:#97a29c; --faint:#6f7a74;
+  --line:#253029; --line-2:#36423b;
+  --accent:#5dbb91; --accent-hover:#76c9a3; --accent-ink:#07130d; --accent-soft:#1a2b23;
+  --home:#6fa6ec; --away:#e3a050; --draw:#8e9893;
+  --good:#5dbb91; --bad:#f08076; --warn:#e5b95c; --warn-bg:#2a2414;
+  --win:#4aa87e; --win-ink:#07130d; --loss:#bd4536; --loss-ink:#ffffff;
+  --shade:rgba(255,255,255,.04);
+}
+
+/* ---------- base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility}
+h1,h2,h3,h4{margin:0; color:var(--ink); line-height:1.15; text-wrap:balance}
+p{margin:0}
+ul,ol,dl,dd{margin:0; padding:0}
+button{font:inherit; color:inherit}
+a{color:var(--accent); text-decoration-thickness:1px; text-underline-offset:3px}
+a:hover{color:var(--accent-hover)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+abbr[title]{text-decoration:none; cursor:help}
+.num,.ptable,.dtable,.statlist,.figures{font-variant-numeric:tabular-nums lining-nums}
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0}
+.wrap{max-width:1120px; margin-inline:auto; padding-inline:32px}
+@media (max-width:720px){ .wrap{padding-inline:20px} }
+@media (max-width:400px){ .wrap{padding-inline:16px} }
+
+/* ---------- type helpers ---------- */
+.label{display:block; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); line-height:1.4}
+.fine{font-size:13px; color:var(--muted); line-height:1.5}
+.muted{color:var(--muted)}
+.sub-h{font-family:var(--serif); font-size:21px; font-weight:600; letter-spacing:-.005em; margin-bottom:16px}
+.tag-sample{display:inline-flex; align-items:center; height:22px; padding:0 7px; border-radius:4px; background:var(--warn-bg); color:var(--warn); font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap}
+
+/* ---------- header ---------- */
+.site-header{position:sticky; top:env(safe-area-inset-top,0px); z-index:30; background:var(--bg); border-bottom:1px solid var(--line)}
+.header-row{height:var(--header-h); display:flex; align-items:center; justify-content:space-between; gap:24px}
+.brand{display:inline-flex; align-items:center; gap:10px; color:var(--ink); text-decoration:none; flex-shrink:0}
+.brand:hover{color:var(--ink)}
+.brand-mark{width:22px; height:22px; color:var(--accent); flex-shrink:0}
+.brand-name{font-family:var(--serif); font-weight:600; font-size:21px; letter-spacing:-.01em}
+.nav{display:flex; align-items:center; gap:2px}
+.nav a{font-size:14px; font-weight:500; color:var(--muted); text-decoration:none; padding:8px 10px; white-space:nowrap; border-radius:4px}
+.nav a:hover{color:var(--ink)}
+.nav a.active{color:var(--ink); box-shadow:inset 0 -2px 0 var(--accent); border-radius:0}
+.menu-btn{display:none; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line-2); border-radius:6px; padding:6px 12px; font-size:14px; font-weight:600; cursor:pointer}
+.menu-btn svg{width:16px; height:16px}
+@media (max-width:980px){
+  .menu-btn{display:inline-flex}
+  .nav{display:none; position:absolute; left:0; right:0; top:100%; flex-direction:column; align-items:stretch; gap:0; padding:8px 20px 16px; background:var(--bg); border-bottom:1px solid var(--line-2); box-shadow:0 18px 30px -18px rgba(0,0,0,.35)}
+  .nav.open{display:flex}
+  .nav a{padding:13px 0; font-size:16px; border-bottom:1px solid var(--line); border-radius:0}
+  .nav a:last-child{border-bottom:0}
+  .nav a.active{box-shadow:none; color:var(--accent)}
+}
+
+/* ---------- banners ---------- */
+.banner{font-size:14px; border-bottom:1px solid var(--line)}
+.banner-row{display:flex; align-items:center; gap:10px 20px; flex-wrap:wrap; padding-block:10px}
+.banner-sample{background:var(--warn-bg); color:var(--warn)}
+.banner-sample strong{font-weight:700}
+.banner-owner{background:var(--accent-soft); color:var(--ink-2)}
+.banner-owner strong{color:var(--accent); font-weight:700}
+.banner-actions{display:flex; gap:8px; flex-wrap:wrap; margin-left:auto}
+@media (max-width:720px){ .banner-actions{margin-left:0} }
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 18px; border-radius:6px; border:1px solid transparent; font-size:15px; font-weight:600; line-height:1.2; text-decoration:none; cursor:pointer; transition:background-color .15s, border-color .15s, color .15s}
+.btn-primary{background:var(--accent); color:var(--accent-ink)}
+.btn-primary:hover{background:var(--accent-hover); color:var(--accent-ink)}
+.btn-secondary{background:var(--surface); border-color:var(--line-2); color:var(--ink)}
+.btn-secondary:hover{border-color:var(--ink-2); color:var(--ink)}
+.btn-ghost{background:transparent; color:var(--muted)}
+.btn-ghost:hover{color:var(--ink)}
+.btn-danger{background:transparent; border-color:var(--bad); color:var(--bad)}
+.btn-sm{min-height:34px; padding:6px 12px; font-size:13.5px}
+.btn[disabled]{opacity:.5; cursor:not-allowed}
+.link{background:none; border:0; padding:4px 0; color:var(--accent); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; text-decoration:none}
+.link:hover{color:var(--accent-hover); text-decoration:underline}
+
+/* ---------- hero ---------- */
+.hero{padding-block:72px 0; border-bottom:1px solid var(--line)}
+@media (max-width:720px){ .hero{padding-block:44px 0} }
+.hero-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,400px); gap:64px; align-items:start}
+@media (max-width:980px){ .hero-grid{grid-template-columns:minmax(0,1fr); gap:40px} }
+.kicker{font-size:14px; color:var(--muted)}
+.kicker b{color:var(--ink-2); font-weight:600}
+.hero-title{font-family:var(--serif); font-weight:600; font-size:clamp(46px,6.4vw,74px); line-height:1; letter-spacing:-.025em; margin-top:16px}
+.hero-sub{font-family:var(--serif); font-weight:400; font-size:clamp(21px,2.5vw,27px); line-height:1.3; color:var(--ink-2); margin-top:12px; max-width:28ch}
+.hero-abstract{margin-top:24px; max-width:62ch; color:var(--ink-2); font-size:17px; line-height:1.65}
+.actions{display:flex; gap:12px; flex-wrap:wrap; margin-top:30px}
+.figures-head{display:flex; justify-content:space-between; align-items:baseline; gap:6px 16px; flex-wrap:wrap; margin-top:64px; padding-bottom:12px; border-bottom:1px solid var(--line)}
+.figures{display:grid; grid-template-columns:repeat(4,minmax(0,1fr))}
+.figures > div{padding:20px 20px 28px; border-left:1px solid var(--line); min-width:0}
+.figures > div:first-child{padding-left:0; border-left:0}
+.figures dt{font-size:13px; color:var(--muted); line-height:1.4}
+.figures dd{font-family:var(--serif); font-size:clamp(28px,3.2vw,36px); font-weight:600; line-height:1.1; margin-top:6px; letter-spacing:-.01em}
+.figures dd small{display:block; font-family:var(--sans); font-size:13px; font-weight:400; color:var(--muted); letter-spacing:0; margin-top:4px}
+@media (max-width:720px){
+  .figures-head{margin-top:44px}
+  .figures{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .figures > div:nth-child(3){padding-left:0; border-left:0}
+  .figures > div:nth-child(n+3){border-top:1px solid var(--line)}
+}
+
+/* ---------- panels (hero card, analysis) ---------- */
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius)}
+.next{padding:24px; display:grid; gap:18px}
+@media (max-width:980px){ .next{max-width:560px} }
+@media (max-width:640px){ .next{padding:20px} }
+.panel-head{display:flex; justify-content:space-between; align-items:baseline; gap:6px 12px; flex-wrap:wrap}
+
+/* ---------- teams & scores ---------- */
+.side-mark{display:inline-block; width:3px; height:16px; border-radius:2px; background:var(--home); flex-shrink:0}
+.side-mark.away{background:var(--away)}
+.team{display:inline-flex; align-items:center; gap:10px; min-width:0}
+.team-name{font-weight:600; color:var(--ink); overflow-wrap:break-word; min-width:0}
+.scoreboard{display:grid; border-top:1px solid var(--line)}
+.scoreboard-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid var(--line)}
+.scoreboard-row .v{font-family:var(--serif); font-size:22px; font-weight:600; font-variant-numeric:tabular-nums}
+.scoreboard-head{display:flex; justify-content:space-between; padding-bottom:6px}
+
+/* ---------- prediction call & probabilities ---------- */
+.call{display:flex; justify-content:space-between; align-items:flex-end; gap:16px}
+.call .stack{display:grid; gap:4px}
+.call .right{text-align:right}
+.outcome{display:inline-flex; align-items:center; gap:8px; font-size:19px; font-weight:650; color:var(--ink); line-height:1.2}
+.outcome::before{content:""; width:10px; height:10px; border-radius:2px; background:var(--draw); flex-shrink:0}
+.o-H::before{background:var(--home)} .o-A::before{background:var(--away)}
+.conf{font-family:var(--serif); font-size:32px; font-weight:600; line-height:1; letter-spacing:-.01em; font-variant-numeric:tabular-nums}
+.prob-bar{display:flex; height:8px; gap:2px; border-radius:2px; overflow:hidden}
+.prob-bar span{display:block; height:100%; min-width:2px}
+.prob-bar .h{background:var(--home)} .prob-bar .d{background:var(--draw)} .prob-bar .a{background:var(--away)}
+.prob-legend{display:flex; justify-content:space-between; gap:8px; margin-top:8px; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
+.prob-legend span{display:inline-flex; align-items:center; gap:6px; white-space:nowrap}
+.prob-legend i{width:8px; height:8px; border-radius:2px; display:inline-block}
+.prob-legend b{color:var(--ink); font-weight:600}
+.k-h{background:var(--home)} .k-d{background:var(--draw)} .k-a{background:var(--away)}
+.outcome-sm{display:inline-flex; align-items:center; gap:7px; color:var(--ink-2); white-space:nowrap}
+.outcome-sm::before{content:""; width:8px; height:8px; border-radius:2px; background:var(--draw); flex-shrink:0}
+.outcome-sm.o-H::before{background:var(--home)} .outcome-sm.o-A::before{background:var(--away)}
+
+/* ---------- section blocks ---------- */
+.block{padding-block:96px; border-bottom:1px solid var(--line); scroll-margin-top:var(--header-h)}
+@media (max-width:720px){ .block{padding-block:64px} }
+.block-head{display:flex; justify-content:space-between; align-items:flex-end; gap:16px 40px; flex-wrap:wrap; margin-bottom:40px}
+.block-title{max-width:66ch; min-width:0}
+.block-title h2{font-family:var(--serif); font-weight:600; font-size:clamp(30px,3.6vw,42px); letter-spacing:-.02em; line-height:1.08}
+.h2-tag{font-family:var(--sans); letter-spacing:.06em; vertical-align:middle; position:relative; top:-.2em; margin-left:10px}
+.block-title p{margin-top:14px; color:var(--muted); font-size:17px; line-height:1.6}
+.block-aside{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+.empty{padding:28px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--muted)}
+.empty strong{display:block; color:var(--ink); font-weight:600; margin-bottom:2px}
+
+/* ---------- prediction cards ---------- */
+.pgrid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px}
+@media (max-width:900px){ .pgrid{grid-template-columns:minmax(0,1fr)} }
+.pcard{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px 24px; display:grid; gap:18px; align-content:start}
+@media (max-width:640px){ .pcard{padding:18px} }
+.pcard-head{display:flex; justify-content:space-between; align-items:center; gap:8px 12px; flex-wrap:wrap; font-size:13px; color:var(--muted)}
+.flags{display:inline-flex; align-items:center; gap:10px}
+.status{font-size:12.5px; font-weight:600; color:var(--muted); white-space:nowrap}
+.status-upcoming{color:var(--accent)}
+.status-awaiting{color:var(--warn)}
+.status-final{color:var(--ink-2)}
+.ptable{width:100%; border-collapse:collapse; font-size:14.5px}
+.ptable th,.ptable td{padding:9px 0 9px 14px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap}
+.ptable thead th{padding-top:0; padding-bottom:7px; font-size:12px; font-weight:600; color:var(--faint); border-bottom-color:var(--line-2)}
+.ptable th:first-child{padding-left:0; text-align:left; white-space:normal; width:100%}
+.ptable tbody th{font-weight:600}
+.ptable td{color:var(--muted)}
+.ptable td.better{color:var(--ink); font-weight:600}
+.ptable .score{color:var(--ink); font-weight:700; border-left:1px solid var(--line); padding-left:14px}
+.ptable thead .score{color:var(--faint); font-weight:600}
+@media (max-width:420px){ .ptable{font-size:13.5px} .ptable th,.ptable td{padding-left:9px} .ptable .score{padding-left:9px} }
+.pcard-foot{display:flex; justify-content:space-between; align-items:center; gap:8px 16px; flex-wrap:wrap; padding-top:14px; border-top:1px solid var(--line)}
+.pcard-foot .fine{min-width:0}
+
+/* ---------- owner controls ---------- */
+.owner-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 14px; border-radius:6px; background:var(--accent-soft)}
+.owner-row .label{color:var(--accent); margin-right:4px}
+.score-in{width:62px; text-align:center}
+.form-msg{font-size:13.5px; min-height:1.2em}
+.form-msg.err{color:var(--bad)} .form-msg.ok{color:var(--good)}
+
+/* ---------- track record ---------- */
+.tr-grid{display:grid; grid-template-columns:minmax(0,4fr) minmax(0,7fr); gap:56px; align-items:start}
+@media (max-width:980px){ .tr-grid{grid-template-columns:minmax(0,1fr); gap:40px} }
+.big{font-family:var(--serif); font-size:clamp(64px,8vw,92px); font-weight:600; line-height:.95; letter-spacing:-.03em; margin-top:8px; font-variant-numeric:tabular-nums}
+.big-cap{margin-top:12px; color:var(--ink-2)}
+.statlist{margin-top:28px; border-top:1px solid var(--line)}
+.statlist > div{display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:12px 0; border-bottom:1px solid var(--line)}
+.statlist dt{color:var(--ink-2); font-size:15px}
+.statlist dd{text-align:right; font-weight:650; font-size:15px; color:var(--ink)}
+.statlist dd span{display:block; font-weight:400; font-size:12.5px; color:var(--muted)}
+.figure-head{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+.figure-head h3{font-family:var(--serif); font-size:21px; font-weight:600}
+.chart-wrap{position:relative}
+.chart-wrap svg{display:block; width:100%; height:auto; overflow:visible}
+figure{margin:0}
+figcaption{margin-top:12px; font-size:13px; color:var(--muted); line-height:1.5}
+.chart-legend{display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:10px; font-size:13px; color:var(--muted)}
+.chart-legend span{display:inline-flex; align-items:center; gap:8px}
+.lg-model{display:inline-block; width:18px; height:2px; background:var(--accent)}
+.lg-base{display:inline-block; width:18px; border-top:2px dashed var(--faint)}
+.c-grid{stroke:var(--line); stroke-width:1}
+.c-axis{stroke:var(--line-2); stroke-width:1}
+.c-tick{fill:var(--muted); font-family:var(--sans); font-size:12px}
+.c-model{fill:none; stroke:var(--accent); stroke-width:2.25; stroke-linejoin:round; stroke-linecap:round}
+.c-base{fill:none; stroke:var(--faint); stroke-width:1.5; stroke-dasharray:5 4}
+.c-dot{fill:var(--surface); stroke:var(--accent); stroke-width:2}
+.c-dot.last{fill:var(--accent)}
+.c-lbl{font-family:var(--sans); font-size:12.5px; font-weight:600}
+.c-lbl.model{fill:var(--accent)} .c-lbl.base{fill:var(--muted); font-weight:500}
+.c-hit{fill:transparent}
+.c-hit.on{fill:var(--shade)}
+.tooltip{position:absolute; z-index:5; pointer-events:none; min-width:180px; padding:10px 12px; border-radius:6px; background:var(--surface); border:1px solid var(--line-2); box-shadow:0 10px 24px -12px rgba(0,0,0,.35); font-size:13px; line-height:1.5; color:var(--ink-2)}
+.tooltip b{color:var(--ink)}
+.tr-tables{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:48px; margin-top:64px}
+@media (max-width:860px){ .tr-tables{grid-template-columns:minmax(0,1fr); gap:40px} }
+.dtable{width:100%; border-collapse:collapse; font-size:14.5px}
+.dtable caption{caption-side:top; text-align:left; font-family:var(--serif); font-size:19px; font-weight:600; color:var(--ink); padding-bottom:12px}
+.dtable th{font-size:12px; font-weight:600; color:var(--muted); text-align:right; padding:0 0 8px 14px; border-bottom:1px solid var(--line-2); white-space:nowrap}
+.dtable td{padding:11px 0 11px 14px; text-align:right; border-bottom:1px solid var(--line); color:var(--ink-2)}
+.dtable th:first-child,.dtable td:first-child{text-align:left; padding-left:0}
+.dtable tfoot td{border-bottom:0; color:var(--ink); font-weight:650}
+.dtable .em{color:var(--ink); font-weight:650}
+.table-note{margin-top:12px}
+.results-block{margin-top:64px}
+.rlist{list-style:none; border-top:1px solid var(--line-2)}
+.rhead,.rrow{display:grid; grid-template-columns:56px minmax(0,1fr) 120px 76px 104px 72px; align-items:center; gap:4px 14px}
+.rhead{font-size:12px; font-weight:600; color:var(--muted); padding:0 0 8px}
+.rrow{padding:12px 0; border-bottom:1px solid var(--line); font-size:14.5px}
+.rrow .gw{color:var(--muted); font-variant-numeric:tabular-nums}
+.rrow .match{color:var(--ink); min-width:0; overflow-wrap:break-word}
+.rrow .score{font-weight:700; padding:0 6px; white-space:nowrap; font-variant-numeric:tabular-nums}
+.rrow .num,.rhead .num{text-align:right; font-variant-numeric:tabular-nums}
+.verdict{font-weight:600; white-space:nowrap}
+.verdict::before{content:""; display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:7px; vertical-align:1px; background:currentColor}
+.verdict-ok{color:var(--good)} .verdict-miss{color:var(--bad)} .verdict-void{color:var(--muted)}
+.rrow .go,.rhead .go{text-align:right}
+.rowner{grid-column:2 / -1; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.meta-m{display:none}
+@media (max-width:760px){
+  .rhead{display:none}
+  .rrow{grid-template-columns:minmax(0,1fr) auto; gap:4px 16px}
+  .rrow .gw,.rrow .pred,.rrow .cf{display:none}
+  .rrow .match{grid-column:1; grid-row:1}
+  .rrow .meta-m{display:block; grid-column:1; grid-row:2; font-size:13px; color:var(--muted)}
+  .rrow .res{grid-column:2; grid-row:1; text-align:right}
+  .rrow .go{grid-column:2; grid-row:2}
+  .rowner{grid-column:1 / -1}
+}
+.more{margin-top:16px}
+
+/* ---------- match analysis ---------- */
+.picker{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px}
+.picker label{font-weight:600; font-size:14px; color:var(--ink-2)}
+.picker select{flex:1 1 280px; max-width:520px}
+.an{display:grid; grid-template-columns:minmax(0,5fr) minmax(0,6fr)}
+@media (max-width:980px){ .an{grid-template-columns:minmax(0,1fr)} }
+.an-main{padding:32px; border-right:1px solid var(--line); display:grid; grid-template-columns:minmax(0,1fr); gap:24px; align-content:start}
+.an-side{padding:32px; display:grid; grid-template-columns:minmax(0,1fr); gap:40px; align-content:start}
+@media (max-width:980px){ .an-main{border-right:0; border-bottom:1px solid var(--line)} }
+@media (max-width:640px){ .an-main,.an-side{padding:20px} }
+.an-meta{display:flex; justify-content:space-between; gap:8px 12px; flex-wrap:wrap; font-size:13px; color:var(--muted)}
+.an-title{font-family:var(--serif); font-size:clamp(25px,3vw,32px); font-weight:600; letter-spacing:-.015em; line-height:1.15}
+.an-title .v{color:var(--faint); font-weight:400}
+.an-scores{display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:16px; padding-block:16px; border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+.an-scores .s{display:grid; gap:2px; min-width:0}
+.an-scores .s:last-child{text-align:right}
+.an-scores .s .v{font-family:var(--serif); font-size:clamp(34px,4.2vw,44px); font-weight:600; line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.an-scores .gap{text-align:center; font-size:13px; color:var(--muted); padding-bottom:4px; font-variant-numeric:tabular-nums}
+.an-scores .s .label{overflow-wrap:break-word}
+.result-line{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:12px 14px; border-radius:6px; background:var(--surface-2); font-size:14.5px}
+.explain h4{font-family:var(--serif); font-size:19px; font-weight:600; margin-bottom:10px}
+.explain p{color:var(--ink-2); font-size:15.5px; line-height:1.7}
+.explain p+p{margin-top:10px}
+.an-side h4{font-family:var(--serif); font-size:19px; font-weight:600}
+.an-side .head{display:flex; justify-content:space-between; align-items:baseline; gap:6px 12px; flex-wrap:wrap; margin-bottom:16px}
+.compare{display:grid; gap:18px}
+.cmp-key{display:flex; justify-content:space-between; gap:12px; font-size:12.5px; font-weight:600; color:var(--ink-2)}
+.cmp-key span{display:inline-flex; align-items:center; gap:7px; min-width:0}
+.cmp-row{display:grid; gap:8px}
+.cmp-label{display:flex; justify-content:space-between; gap:8px; font-size:14px; color:var(--ink-2)}
+.cmp-label .fine{font-size:12.5px; text-align:right}
+.cmp-bars{display:grid; grid-template-columns:48px minmax(0,1fr) minmax(0,1fr) 48px; align-items:center; gap:8px}
+.cmp-val{font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums}
+.cmp-val.better{color:var(--ink); font-weight:650}
+.cmp-val:last-child{text-align:right}
+.cmp-track{height:8px; background:var(--surface-2); border-radius:2px; overflow:hidden; display:flex}
+.cmp-track.left{justify-content:flex-end}
+.cmp-fill{height:100%}
+.cmp-fill.h{background:var(--home)} .cmp-fill.a{background:var(--away)}
+.cmp-fill.dim{opacity:.4}
+.edge-h{color:var(--home)} .edge-a{color:var(--away)} .edge-n{color:var(--faint)}
+.dtable td.edge-h,.dtable td.edge-a{font-weight:600}
+.table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+
+/* ---------- methodology ---------- */
+.method-grid{display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:64px; align-items:start}
+.method-grid + .method-grid{margin-top:72px}
+@media (max-width:980px){ .method-grid{grid-template-columns:minmax(0,1fr); gap:48px} }
+.proc{list-style:none; counter-reset:step; border-top:1px solid var(--line)}
+.proc li{counter-increment:step; display:grid; grid-template-columns:32px minmax(0,1fr); gap:12px; padding:16px 0; border-bottom:1px solid var(--line)}
+.proc li::before{content:counter(step) "."; font-family:var(--serif); font-size:18px; font-weight:600; color:var(--accent); line-height:1.4}
+.proc h4{font-size:15.5px; font-weight:650}
+.proc p{margin-top:3px; color:var(--muted); font-size:14.5px}
+.ftable td:first-child{padding-right:16px; width:42%}
+.ftable th.rule,.ftable td.rule{text-align:left; padding-left:16px}
+.ftable .fname{display:block; color:var(--ink); font-weight:600}
+.ftable .fdesc{display:block; font-size:13px; color:var(--muted); margin-top:2px; line-height:1.45}
+.ftable code{font-family:var(--mono); font-size:12.5px; color:var(--ink-2)}
+.wcell{display:inline-flex; align-items:center; gap:10px; justify-content:flex-end; white-space:nowrap}
+.wbar{display:inline-block; width:72px; height:6px; border-radius:2px; background:var(--surface-2); overflow:hidden}
+.wbar i{display:block; height:100%; background:var(--accent)}
+@media (max-width:640px){
+  .ftable thead{display:none}
+  .ftable tbody tr,.ftable tfoot tr{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 12px; padding:14px 0; border-bottom:1px solid var(--line)}
+  .ftable td{display:block; padding:0; border:0; text-align:left}
+  .ftable td:first-child{width:auto; grid-column:1; grid-row:1}
+  .ftable td:last-child{grid-column:2; grid-row:1; text-align:right}
+  .ftable td.rule{grid-column:1 / -1; grid-row:2; padding-left:0}
+  .ftable tfoot tr{border-bottom:0}
+  .wbar{width:48px}
+}
+.formula{margin:16px 0 0; font-family:var(--mono); font-size:13px; line-height:1.8; color:var(--ink-2); background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:14px 16px; overflow-x:auto; white-space:pre}
+.prose{display:grid; gap:12px; color:var(--ink-2); font-size:15.5px; line-height:1.7; max-width:64ch}
+.bullets{list-style:none; border-top:1px solid var(--line)}
+.bullets li{padding:12px 0 12px 18px; border-bottom:1px solid var(--line); position:relative; color:var(--ink-2); font-size:15px}
+.bullets li::before{content:""; position:absolute; left:2px; top:1.35em; width:6px; height:1.5px; background:var(--faint)}
+
+/* ---------- model development ---------- */
+.changelog{list-style:none; border-top:1px solid var(--line-2)}
+.cl{display:grid; grid-template-columns:200px minmax(0,1fr); gap:40px; padding:32px 0; border-bottom:1px solid var(--line)}
+@media (max-width:760px){ .cl{grid-template-columns:minmax(0,1fr); gap:14px; padding:24px 0} }
+.cl-meta{display:grid; gap:6px; align-content:start}
+.cl-v{font-family:var(--serif); font-size:34px; font-weight:600; line-height:1; letter-spacing:-.02em}
+.cl-current{font-size:12.5px; font-weight:700; color:var(--accent)}
+.cl-body{display:grid; gap:16px; min-width:0}
+.cl-body h3{font-family:var(--serif); font-size:22px; font-weight:600; letter-spacing:-.01em}
+.cl-body .bullets{border-top:0}
+.cl-body .bullets li{border-bottom:0; padding:3px 0 3px 18px}
+.cl-body .bullets li::before{top:.95em}
+.params{display:flex; flex-wrap:wrap; gap:4px 20px; font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.params b{color:var(--ink); font-weight:600}
+.cl-metrics{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 32px; padding-top:16px; border-top:1px solid var(--line)}
+@media (max-width:560px){ .cl-metrics{grid-template-columns:minmax(0,1fr)} }
+.cl-metrics > div{display:grid; gap:2px}
+.cl-metrics b{font-family:var(--serif); font-size:22px; font-weight:600}
+.up{color:var(--good)} .down{color:var(--bad)}
+
+/* ---------- data & transparency ---------- */
+.vtable td{text-align:left; vertical-align:top; line-height:1.55}
+.vtable th{text-align:left}
+.vtable td:first-child{width:24%; color:var(--ink); font-weight:600}
+.vtable td:last-child{width:28%}
+@media (max-width:760px){
+  .vtable thead{display:none}
+  .vtable tr{display:grid; gap:4px; padding:14px 0; border-bottom:1px solid var(--line)}
+  .vtable td{display:block; width:auto!important; padding:0; border:0}
+  .vtable td:last-child{font-size:13.5px; color:var(--muted)}
+}
+.data-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:64px; margin-top:72px}
+@media (max-width:900px){ .data-grid{grid-template-columns:minmax(0,1fr); gap:48px} }
+.sources{list-style:none; border-top:1px solid var(--line)}
+.sources li{display:flex; justify-content:space-between; align-items:baseline; gap:4px 20px; padding:14px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.sources b{display:block; font-weight:650}
+.sources span{font-size:14px; color:var(--muted)}
+.sources a{font-size:14px; white-space:nowrap}
+.rules{list-style:none; border-top:1px solid var(--line)}
+.rules li{padding:14px 0; border-bottom:1px solid var(--line)}
+.rules b{display:block; font-weight:650; color:var(--ink)}
+.rules p{color:var(--muted); font-size:14.5px; margin-top:2px}
+.export-block{margin-top:72px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:64px; align-items:start}
+@media (max-width:900px){ .export-block{grid-template-columns:minmax(0,1fr); gap:24px} }
+.export{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:16px}
+.export-area{margin-top:14px; width:100%; min-height:140px; font-family:var(--mono); font-size:12px}
+details.format{border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+details.format summary{cursor:pointer; padding:14px 0; font-weight:600; color:var(--ink-2)}
+details.format pre{margin:0 0 16px; max-height:340px; overflow:auto}
+.disclaimer{margin-top:48px; font-size:13.5px; color:var(--muted); max-width:80ch}
+
+/* ---------- about ---------- */
+.about-grid{display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:64px; align-items:start}
+@media (max-width:980px){ .about-grid{grid-template-columns:minmax(0,1fr); gap:48px} }
+.question{font-family:var(--serif); font-size:clamp(23px,2.8vw,30px); font-weight:500; line-height:1.3; letter-spacing:-.01em; color:var(--ink); max-width:34ch; padding-top:16px; border-top:1px solid var(--line)}
+.about-text{margin-top:20px}
+.scope{border-top:1px solid var(--line)}
+.scope > div{padding:14px 0; border-bottom:1px solid var(--line)}
+.scope dt{font-weight:650}
+.scope dd{color:var(--muted); font-size:14.5px; margin-top:2px}
+.analyst{margin-top:40px; padding-top:20px; border-top:1px solid var(--line); display:grid; gap:6px; justify-items:start}
+.analyst-name{font-family:var(--serif); font-size:22px; font-weight:600}
+
+/* ---------- footer ---------- */
+.site-footer{padding-block:48px 40px}
+.footer-row{display:flex; justify-content:space-between; align-items:flex-start; gap:24px 40px; flex-wrap:wrap}
+.footer-brand{display:grid; gap:6px}
+.footer-brand .tagline{font-size:14px; color:var(--muted)}
+.footer-links{display:flex; gap:10px 24px; flex-wrap:wrap; align-items:center}
+.footer-links a{font-size:14.5px; color:var(--ink-2); text-decoration:none}
+.footer-links a:hover{color:var(--accent); text-decoration:underline}
+.footer-fine{margin-top:32px; padding-top:20px; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:8px 24px; flex-wrap:wrap; font-size:13px; color:var(--muted)}
+
+/* ---------- forms ---------- */
+.form-card{background:var(--surface); border:1px solid var(--line-2); border-radius:var(--radius); padding:28px; display:grid; gap:22px; margin-bottom:28px; scroll-margin-top:calc(var(--header-h) + 16px)}
+@media (max-width:640px){ .form-card{padding:20px} }
+.form-head{display:grid; gap:6px}
+.form-head h3{font-family:var(--serif); font-size:24px; font-weight:600}
+.form-head p{color:var(--muted); font-size:14.5px; max-width:72ch}
+.form-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr)); gap:14px 16px}
+.form-teams{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
+@media (max-width:760px){ .form-teams{grid-template-columns:minmax(0,1fr)} }
+fieldset{margin:0; padding:16px; border:1px solid var(--line); border-radius:6px; display:grid; gap:12px; min-width:0}
+legend{padding:0 6px; font-weight:700; font-size:13px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-2)}
+legend .side-mark{vertical-align:-3px; margin-right:8px}
+.field{display:grid; gap:6px; min-width:0; align-content:start}
+.field label{font-size:13.5px; font-weight:600; color:var(--ink-2)}
+.field .hint{font-size:12.5px; color:var(--muted)}
+.field-row{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+input,select,textarea{font:inherit; font-size:15px; color:var(--ink); background:var(--surface); border:1px solid var(--line-2); border-radius:6px; padding:9px 11px; width:100%; min-width:0; min-height:42px}
+input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{min-height:96px; resize:vertical; line-height:1.5}
+select{appearance:none; -webkit-appearance:none; padding-right:36px; cursor:pointer; background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%); background-position:calc(100% - 18px) 52%, calc(100% - 13px) 52%; background-size:5px 5px; background-repeat:no-repeat}
+.form-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.preview{padding:18px; border-radius:6px; background:var(--bg); border:1px solid var(--line); display:grid; gap:14px}
+.weights-total{font-size:13.5px; font-weight:600; font-variant-numeric:tabular-nums}
+.weights-total.bad{color:var(--bad)} .weights-total.good{color:var(--good)}
+
+/* ---------- play: Title Race ---------- */
+.tag-game{display:inline-flex; align-items:center; height:22px; padding:0 7px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap}
+.hero-play{align-self:center; margin-left:4px}
+@media (max-width:520px){ .hero-play{margin-left:0} }
+.g-top{display:flex; justify-content:space-between; align-items:center; gap:12px 24px; flex-wrap:wrap; margin-bottom:24px}
+.g-top .fine{max-width:62ch}
+.seg{display:inline-flex; gap:2px; padding:3px; border:1px solid var(--line-2); border-radius:8px; background:var(--surface)}
+.seg-btn{border:0; background:transparent; min-height:36px; padding:6px 14px; border-radius:5px; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; white-space:nowrap}
+.seg-btn:hover{color:var(--ink)}
+.seg-btn.on{background:var(--accent-soft); color:var(--accent)}
+.g-how{list-style:none; counter-reset:how; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px 32px; padding:18px 0; margin-bottom:24px; border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+.g-how li{counter-increment:how; display:grid; grid-template-columns:24px minmax(0,1fr); column-gap:12px; font-size:14px; color:var(--muted); line-height:1.5}
+.g-how li::before{content:counter(how); grid-row:1 / span 2; width:24px; height:24px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:12.5px; line-height:24px; text-align:center}
+.g-how b{color:var(--ink); font-weight:650}
+@media (max-width:860px){ .g-how{grid-template-columns:minmax(0,1fr)} }
+.g-board{display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:24px; align-items:start}
+@media (max-width:900px){ .g-board{grid-template-columns:minmax(0,1fr)} }
+.g-rival{padding:24px 26px; display:grid; gap:18px}
+.g-rival-head{display:flex; align-items:center; gap:16px; min-width:0}
+.g-rival-head > div{min-width:0}
+.g-rival-head h3{font-family:var(--serif); font-size:clamp(24px,2.6vw,30px); font-weight:600; letter-spacing:-.015em; margin-top:2px; overflow-wrap:break-word}
+.g-crest{flex-shrink:0; width:52px; height:52px; border-radius:10px; display:grid; place-items:center; background:var(--surface-2); border:1px solid var(--line-2); font-family:var(--serif); font-weight:600; font-size:18px; letter-spacing:.02em; color:var(--ink-2)}
+.g-stats{list-style:none; border-top:1px solid var(--line-2)}
+.g-stat{display:grid; grid-template-columns:minmax(0,1.3fr) 92px minmax(0,1fr) 92px; grid-template-areas:"name val worth act"; align-items:center; gap:8px 18px; padding:13px 0; border-bottom:1px solid var(--line)}
+.g-stat-name{grid-area:name; display:grid; min-width:0}
+.g-stat-name b{font-weight:650; font-size:15.5px}
+.g-stat-val{grid-area:val; display:grid; gap:3px; white-space:nowrap}
+.g-stat-val .fine{font-size:12.5px; line-height:1.2}
+.g-num{font-family:var(--serif); font-size:28px; font-weight:600; line-height:1; letter-spacing:-.01em}
+.g-stat-worth{grid-area:worth; display:grid; gap:6px; min-width:0}
+.g-stat-worth b{color:var(--ink); font-weight:650}
+.g-meter{display:block; height:6px; border-radius:3px; background:var(--surface-2); overflow:hidden}
+.g-meter i{display:block; height:100%; background:var(--accent); border-radius:3px}
+.g-stat-act{grid-area:act; text-align:right}
+.g-take{min-width:84px}
+.g-filled{font-size:13px; color:var(--faint); font-weight:600; white-space:nowrap}
+.g-stat.is-filled .g-stat-name,.g-stat.is-filled .g-stat-val,.g-stat.is-filled .g-stat-worth{opacity:.4}
+@media (max-width:560px){
+  .g-rival{padding:18px}
+  .g-stat{grid-template-columns:minmax(0,1fr) 124px; grid-template-areas:"name act" "val worth"; gap:10px 16px}
+  .g-stat-act .g-take{width:100%}
+  .g-crest{width:44px; height:44px; font-size:16px}
+}
+.g-lifelines{display:flex; align-items:center; gap:8px 10px; flex-wrap:wrap}
+.g-life{border:1px dashed var(--line-2); color:var(--ink-2)}
+.g-life:hover{border-color:var(--ink-2); color:var(--ink)}
+.g-lifelines .fine{margin-left:2px}
+.g-scout{display:grid; gap:2px; padding:12px 14px; border-radius:6px; background:var(--surface-2); font-size:14.5px}
+.g-scout-nums{color:var(--ink-2); font-variant-numeric:tabular-nums}
+.g-club{padding:22px 24px; display:grid; gap:16px; align-content:start}
+@media (max-width:560px){ .g-club{padding:18px} }
+.g-club-head{display:grid; gap:4px}
+.g-name-wrap{position:relative; margin-left:-9px}
+.g-name{font-family:var(--serif); font-size:24px; font-weight:600; letter-spacing:-.01em; border:1px solid transparent; background:transparent; padding:2px 36px 2px 8px; min-height:40px; border-radius:6px}
+.g-name:hover{border-color:var(--line-2)}
+.g-pencil{position:absolute; right:10px; top:50%; width:15px; height:15px; margin-top:-7.5px; color:var(--faint); pointer-events:none}
+.g-slots{list-style:none; border-top:1px solid var(--line-2)}
+.g-slot{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 12px; padding:11px 0; border-bottom:1px solid var(--line); align-items:baseline}
+.g-slot-name{font-weight:600; font-size:14.5px}
+.g-slot-val{font-weight:650; font-size:16px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.g-slot-val .fine{font-weight:400}
+.g-slot-src{min-width:0; overflow-wrap:break-word}
+.g-slot-pts{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.g-slot.is-empty{align-items:center}
+.g-slot.is-empty .g-slot-name{color:var(--muted)}
+.g-slot-empty{font-size:12.5px; font-weight:600; color:var(--faint); padding:1px 10px; border:1px dashed var(--line-2); border-radius:4px}
+.g-total{display:flex; justify-content:space-between; align-items:flex-end; gap:16px}
+.g-total > div{display:grid; gap:2px}
+.g-total b{font-family:var(--serif); font-size:38px; font-weight:600; line-height:1; letter-spacing:-.02em}
+.g-ready{padding:28px; display:grid; gap:14px; align-content:start}
+.g-ready h3{font-family:var(--serif); font-size:clamp(26px,3vw,34px); font-weight:600; letter-spacing:-.015em; line-height:1.15; overflow-wrap:break-word}
+.g-ready p{color:var(--ink-2)}
+.g-ready .actions{margin-top:6px}
+.g-season{padding:28px; display:grid; gap:20px; scroll-margin-top:calc(var(--header-h) + 16px)}
+@media (max-width:560px){ .g-season,.g-ready{padding:20px} }
+#play-root{scroll-margin-top:calc(var(--header-h) + 16px)}
+.g-live{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; padding-bottom:18px; border-bottom:1px solid var(--line)}
+.g-live > div{display:grid; gap:4px; align-content:start}
+.g-live b{font-family:var(--serif); font-size:clamp(34px,5vw,48px); font-weight:600; line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.g-last{font-size:15.5px; color:var(--ink-2); min-height:1.6em}
+.g-strip-wrap{position:relative}
+.g-strip{list-style:none; display:grid; grid-template-columns:repeat(19,minmax(0,40px)); gap:6px}
+@media (max-width:760px){ .g-strip{grid-template-columns:repeat(10,minmax(0,1fr)); gap:5px} }
+.g-chip{height:34px; border-radius:5px; display:grid; place-items:center; font-size:13px; font-weight:700; color:transparent; border:1px dashed var(--line-2); background:transparent; user-select:none; -webkit-user-select:none}
+.g-chip.on{border-color:transparent; border-style:solid}
+.g-chip.on.r-W{background:var(--win); color:var(--win-ink)}
+.g-chip.on.r-D{background:var(--surface-2); color:var(--ink-2); border-color:var(--line-2)}
+.g-chip.on.r-L{background:var(--loss); color:var(--loss-ink)}
+.g-chip.hover{outline:2px solid var(--ink); outline-offset:1px}
+@media (prefers-reduced-motion:no-preference){ .g-season .g-chip.on{animation:g-pop .22s ease-out} }
+@keyframes g-pop{from{transform:scale(.7); opacity:.2} to{transform:none; opacity:1}}
+.g-result-head{display:flex; justify-content:space-between; align-items:flex-end; gap:24px 40px; flex-wrap:wrap; padding-bottom:28px}
+.g-result-main{display:grid; gap:6px; min-width:0}
+.g-tier{font-family:var(--serif); font-size:clamp(46px,7vw,76px); font-weight:600; line-height:1; letter-spacing:-.03em; margin-top:6px}
+.g-tier:focus{outline:none}
+.g-tier-champion,.g-tier-invincible{color:var(--accent)}
+.g-tier-down{color:var(--bad)}
+.g-tier-sub{font-size:17px; color:var(--ink-2); max-width:56ch}
+.g-tier-sub b{color:var(--ink); font-weight:650}
+.g-luck{font-size:14.5px; color:var(--muted); max-width:62ch}
+.g-result-actions{display:grid; gap:8px; justify-items:start; max-width:100%}
+.g-result-actions .actions{margin-top:0}
+.g-figs{border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+.g-sec{margin-top:48px}
+.g-grid{display:grid; grid-template-columns:minmax(0,6fr) minmax(0,5fr); gap:56px; margin-top:56px; align-items:start}
+@media (max-width:980px){ .g-grid{grid-template-columns:minmax(0,1fr); gap:48px} }
+.g-table{font-size:14px}
+.g-table th,.g-table td{padding-left:12px}
+.g-table td{padding-top:8px; padding-bottom:8px}
+.g-table .g-club-col{text-align:left; width:100%}
+.g-table tr.is-you td{background:var(--accent-soft); color:var(--ink); font-weight:650}
+.g-table tr.is-you td:first-child{box-shadow:inset 3px 0 0 var(--accent); padding-left:10px}
+.g-table tr.zone-line td{border-bottom-color:var(--faint)}
+.g-you{display:inline-flex; align-items:center; height:18px; padding:0 6px; border-radius:4px; background:var(--accent); color:var(--accent-ink); font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; vertical-align:1px}
+@media (max-width:480px){ .g-table .g-model-col{display:none} .g-table{font-size:13.5px} .g-table th,.g-table td{padding-left:8px} }
+.c-bar{fill:var(--accent); opacity:.38}
+.c-bar.on{opacity:1}
+.c-tick.mine{fill:var(--ink); font-weight:700}
+.g-hist-table{margin-top:16px}
+.g-hist-table table{margin-bottom:16px}
+.g-perfect{margin-top:40px}
+.g-perfect td{vertical-align:top}
+.g-src{display:block; font-size:12px; color:var(--muted); font-weight:400}
+.g-note{margin-top:72px; max-width:860px}
+
+@media (prefers-reduced-motion:no-preference){ html{scroll-behavior:smooth} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Newsreader:opsz,wght@6..72,400..700&amp;family=Public+Sans:wght@400..700&amp;display=swap">
+</head>
+<body>
+<div id="app"><div class="wrap" style="padding-block:96px"><p class="fine">Loading PitchMetrics…</p></div></div>
+<script type="application/json" id="pm-data">{"schema":1,"site":{"season":"2026–27","analyst":{"name":"","bio":""},"links":{"github":"","fbref":"https://fbref.com/en/comps/9/Premier-League-Stats","premierLeague":"https://www.premierleague.com/","understat":"https://understat.com/league/EPL"}},"modelVersions":[{"id":"1.0","date":"2026-10-04","summary":"First version of the weighted model","changes":["Five inputs from each team's last five Premier League matches: recent form, goals scored, goals allowed, expected goals (xG) and home advantage.","Weights: 35% recent form, 20% goals scored, 15% defensive performance, 20% xG, 10% home advantage.","A draw is predicted when the two model scores are within 5 points of each other."],"weights":{"form":35,"scored":20,"defense":15,"xg":20,"home":10},"drawZone":5,"scale":25,"goalCap":3}],"matches":[{"id":"mmuup3gzqp0p","gameweek":6,"kickoff":"2026-10-10T16:30:00.000Z","loggedAt":"2026-10-05T03:33:37.862Z","modelVersion":"1.0","home":{"name":"Arsenal","form":12,"scored":1.33,"allowed":0.5,"xg":1.7},"away":{"name":"Leeds United","form":9,"scored":1.4,"allowed":0.6,"xg":1.57},"prediction":{"outcome":"H","confidence":0.488,"probs":{"home":0.488,"draw":0.327,"away":0.185},"scores":{"home":70.7,"away":52.8},"gap":17.9},"result":null}]}</script>
+<script id="pm-app">(function () {
+"use strict";
+
+/* ===== Model: pure functions, no DOM ===== */
+var OUTCOME_LABEL = { H: "Home Win", D: "Draw", A: "Away Win" };
+var FACTORS = [
+  { key: "form",    stat: "form",    label: "Recent form",           short: "Form",          unit: "pts" },
+  { key: "scored",  stat: "scored",  label: "Goals scored",          short: "Goals scored",  unit: "per game" },
+  { key: "defense", stat: "allowed", label: "Defensive performance", short: "Goals allowed", unit: "per game", lowerIsBetter: true },
+  { key: "xg",      stat: "xg",      label: "Expected goals (xG)",   short: "xG",            unit: "per game" },
+  { key: "home",    stat: null,      label: "Home advantage",        short: "Home",          unit: "" }
+];
+
+function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+function round1(v) { return Math.round(v * 10) / 10; }
+function round3(v) { return Math.round(v * 1000) / 1000; }
+function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
+
+/* Each input becomes a 0-100 rating before weighting. */
+function factorRatings(team, isHome, version) {
+  var cap = version.goalCap || 3;
+  return {
+    form: clamp(team.form / 15, 0, 1) * 100,
+    scored: clamp(team.scored / cap, 0, 1) * 100,
+    defense: (1 - clamp(team.allowed / cap, 0, 1)) * 100,
+    xg: clamp(team.xg / cap, 0, 1) * 100,
+    home: isHome ? 100 : 0
+  };
+}
+
+/* Weighted contribution of each factor, in model points (sums to the team score). */
+function contributions(ratings, weights) {
+  var out = {}, total = 0;
+  FACTORS.forEach(function (f) {
+    out[f.key] = (weights[f.key] || 0) * ratings[f.key] / 100;
+    total += out[f.key];
+  });
+  out.total = total;
+  return out;
+}
+
+/* Ordered-logistic cut point c, chosen so a draw is the most likely outcome
+   exactly when |gap| < drawZone. Solves 2*s(a-c) + s(-a-c) = 1 by bisection. */
+function cutPoint(version) {
+  var a = version.drawZone / version.scale, lo = 0, hi = 10;
+  for (var i = 0; i < 60; i++) {
+    var c = (lo + hi) / 2;
+    var f = 2 * sigmoid(a - c) + sigmoid(-a - c) - 1;
+    if (f > 0) lo = c; else hi = c;
+  }
+  return (lo + hi) / 2;
+}
+
+function outcomeProbabilities(gap, version) {
+  var c = cutPoint(version), x = gap / version.scale;
+  var home = sigmoid(x - c), away = sigmoid(-x - c);
+  return { home: home, draw: 1 - home - away, away: away };
+}
+
+function predict(home, away, version) {
+  var ch = contributions(factorRatings(home, true, version), version.weights);
+  var ca = contributions(factorRatings(away, false, version), version.weights);
+  var sh = round1(ch.total), sa = round1(ca.total), gap = round1(sh - sa);
+  var outcome = Math.abs(gap) < version.drawZone ? "D" : (gap > 0 ? "H" : "A");
+  var p = outcomeProbabilities(gap, version);
+  var probs = { home: round3(p.home), draw: round3(p.draw), away: round3(p.away) };
+  var confidence = outcome === "H" ? probs.home : outcome === "A" ? probs.away : probs.draw;
+  return { outcome: outcome, confidence: confidence, probs: probs, scores: { home: sh, away: sa }, gap: gap };
+}
+
+function resultOutcome(result) {
+  if (!result || result.status === "postponed") return null;
+  return result.home > result.away ? "H" : result.home < result.away ? "A" : "D";
+}
+
+/* Integer percentages that always add up to 100 (largest remainder). */
+function percentTriple(probs) {
+  var raw = [probs.home * 100, probs.draw * 100, probs.away * 100];
+  var floor = raw.map(Math.floor), left = 100 - floor.reduce(function (s, v) { return s + v; }, 0);
+  raw.map(function (v, i) { return { i: i, r: v - Math.floor(v) }; })
+     .sort(function (a, b) { return b.r - a.r; })
+     .slice(0, left).forEach(function (o) { floor[o.i]++; });
+  return { home: floor[0], draw: floor[1], away: floor[2] };
+}
+
+
+/* ===== Title Race: a game built on the model (pure functions, no DOM) =====
+   The player copies one number from each rival club into four slots, then the
+   model plays a full 38-match season. Every club and number here is generated
+   from a seed, so a daily draft is the same for everyone. */
+var GAME_SLOTS = FACTORS.filter(function (f) { return f.stat; });
+var GAME_EPOCH = "2026-10-27";
+var GAME_SIMS = 1000;
+var GAME_DRAFT_SIZE = 5;
+var CLUB_NAMES = [
+  "Ashcombe City", "Redmere United", "Kingsbridge Albion", "Calder Vale", "Northgate Athletic", "Fenwick Rovers",
+  "Saltmoor Town", "Thornfield Park", "Elmstead Wanderers", "Harrowden FC", "Brackenford Rangers", "Westmarsh United",
+  "Coldharbour City", "Ravensby Athletic", "Ottermouth Town", "Pellbridge Rovers", "Stanmoor Albion", "Wyecross FC",
+  "Hollowcliffe Wanderers", "Marlstone City", "Dunmere Park", "Greyhaven United", "Ivybrook Town", "Kestrel Vale",
+  "Lowfield Athletic", "Merrow Rangers", "Oakhurst Borough", "Quarrington FC", "Rookwood Albion", "Silverwick Rovers",
+  "Tidewell Town", "Underby City", "Valemount United", "Whitlow Park", "Yarrowfield Athletic", "Brookhaven Town",
+  "Copperfield Rovers", "Easterby Wanderers", "Glenmoor City", "Hawksmere United", "Lindenford FC", "Fallowmere Town"
+];
+/* Spread of each number across a league, roughly matching five-match Premier League figures. */
+var STAT_DIST = {
+  form:    { mean: 7.2,  sd: 3.4,  lo: 0,   hi: 15,  step: 1 },
+  scored:  { mean: 1.4,  sd: 0.55, lo: 0.2, hi: 3.4, step: 0.2 },
+  allowed: { mean: 1.4,  sd: 0.5,  lo: 0.2, hi: 3.2, step: 0.2 },
+  xg:      { mean: 1.45, sd: 0.42, lo: 0.5, hi: 2.9, step: 0.1 }
+};
+
+function hashSeed(str) {
+  var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (var i = 0; i < str.length; i++) {
+    var ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return ((h1 >>> 0) ^ (h2 >>> 0)) >>> 0;
+}
+function makeRng(seed) {
+  var a = hashSeed(String(seed));
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gaussian(rng) {
+  var u = 1 - rng(), v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function shuffled(list, rng) {
+  var a = list.slice();
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+/* z is "how good": positive is better for every number, including goals allowed. */
+function statFromZ(stat, z, rng) {
+  var d = STAT_DIST[stat], raw = d.mean + (stat === "allowed" ? -z : z) * d.sd;
+  var v = Math.round(clamp(raw, d.lo, d.hi) / d.step) * d.step;
+  if (stat === "form" && v === 14) v = rng() < 0.5 ? 13 : 15;
+  return Math.round(v * 10) / 10;
+}
+function makeClub(name, zs, rng) {
+  return { name: name, form: statFromZ("form", zs.form, rng), scored: statFromZ("scored", zs.scored, rng), allowed: statFromZ("allowed", zs.allowed, rng), xg: statFromZ("xg", zs.xg, rng) };
+}
+/* 19 rivals. The five in draft order have uneven, "spiky" profiles so every choice
+   is a trade-off, and between them they always hold at least one strong number for
+   every slot. The other fourteen range from title contenders to strugglers. */
+function makeLeague(seed) {
+  var rng = makeRng("league|" + seed), regular = 19 - GAME_DRAFT_SIZE, keys = ["form", "scored", "allowed", "xg"];
+  var names = shuffled(CLUB_NAMES, rng).slice(0, 19), rivals = [];
+  for (var i = 0; i < regular; i++) {
+    var s = 1.2 - 3.1 * (i + rng()) / regular, zs = {};
+    keys.forEach(function (k) { zs[k] = 0.72 * s + 0.6 * gaussian(rng); });
+    rivals.push(makeClub(names[i], zs, rng));
+  }
+  var spikes = [];
+  for (var j = 0; j < GAME_DRAFT_SIZE; j++) {
+    var zd = {};
+    keys.forEach(function (k) {
+      var u = rng() * 2 - 1;
+      zd[k] = (u < 0 ? -1 : 1) * (0.35 + 1.75 * Math.pow(Math.abs(u), 0.6));
+    });
+    spikes.push(zd);
+  }
+  keys.forEach(function (k) {
+    if (Math.max.apply(null, spikes.map(function (z) { return z[k]; })) < 0.9) spikes[Math.floor(rng() * spikes.length)][k] = 0.9 + 0.9 * rng();
+  });
+  spikes.forEach(function (zd, j) { rivals.push(makeClub(names[regular + j], zd, rng)); });
+  var order = shuffled(rivals.map(function (_, k) { return k; }), rng);
+  return {
+    seed: String(seed),
+    rivals: order.map(function (k) { return rivals[k]; }),
+    order: rivals.slice(regular).map(function (_, j) { return order.indexOf(regular + j); })
+  };
+}
+function clubFromPicks(league, picks, name) {
+  var c = { name: name || "Your club" };
+  GAME_SLOTS.forEach(function (f) { var r = league.rivals[picks[f.key]]; c[f.stat] = r ? r[f.stat] : null; });
+  return c;
+}
+function slotPoints(f, value, version) {
+  var t = { form: 0, scored: 0, allowed: 3, xg: 0 };
+  t[f.stat] = value;
+  return contributions(factorRatings(t, false, version), version.weights)[f.key];
+}
+function baseScore(club, version) {
+  return contributions(factorRatings(club, false, version), version.weights).total;
+}
+/* Double round robin: 38 matchdays, everyone home and away against everyone. */
+function makeFixtures(seed) {
+  var rng = makeRng("fixtures|" + seed), n = 20;
+  var slots = shuffled(Array.from({ length: n }, function (_, i) { return i; }), rng), first = [];
+  for (var r = 0; r < n - 1; r++) {
+    var md = [];
+    for (var k = 0; k < n / 2; k++) {
+      var a = slots[k], b = slots[n - 1 - k];
+      md.push((k === 0 ? r % 2 === 0 : k % 2 === 1) ? [a, b] : [b, a]);
+    }
+    first.push(md);
+    slots.splice(1, 0, slots.pop());
+  }
+  var second = shuffled(first, rng).map(function (md) { return md.map(function (p) { return [p[1], p[0]]; }); });
+  return first.concat(second);
+}
+/* Probabilities for every league match, from the same formula as the published predictions. */
+function seasonModel(league, club, version) {
+  var teams = [club].concat(league.rivals), home = version.weights.home || 0;
+  var base = teams.map(function (t) { return baseScore(t, version); });
+  var fixtures = makeFixtures(league.seed);
+  var probs = fixtures.map(function (md) {
+    return md.map(function (p) { return outcomeProbabilities(base[p[0]] + home - base[p[1]], version); });
+  });
+  return { teams: teams, base: base, fixtures: fixtures, probs: probs };
+}
+function expectedPoints(sm, team) {
+  var x = 0;
+  sm.fixtures.forEach(function (md, d) {
+    md.forEach(function (p, k) {
+      var pr = sm.probs[d][k];
+      if (p[0] === team) x += 3 * pr.home + pr.draw;
+      else if (p[1] === team) x += 3 * pr.away + pr.draw;
+    });
+  });
+  return x;
+}
+function standingsOrder(pts, wins, base) {
+  return pts.map(function (_, i) { return i; }).sort(function (a, b) {
+    return pts[b] - pts[a] || wins[b] - wins[a] || base[b] - base[a] || a - b;
+  });
+}
+function playSeason(sm, rng) {
+  var n = sm.teams.length, pts = new Array(n).fill(0), w = new Array(n).fill(0), d = new Array(n).fill(0), l = new Array(n).fill(0);
+  var mine = [], track = [];
+  sm.fixtures.forEach(function (md, di) {
+    md.forEach(function (p, k) {
+      var pr = sm.probs[di][k], u = rng(), o = u < pr.home ? "H" : u < pr.home + pr.draw ? "D" : "A";
+      var h = p[0], a = p[1];
+      if (o === "H") { pts[h] += 3; w[h]++; l[a]++; } else if (o === "A") { pts[a] += 3; w[a]++; l[h]++; } else { pts[h]++; pts[a]++; d[h]++; d[a]++; }
+      if (h === 0 || a === 0) {
+        var atHome = h === 0, res = o === "D" ? "D" : (o === "H") === atHome ? "W" : "L";
+        mine.push({ md: di + 1, opp: atHome ? a : h, home: atHome, res: res });
+      }
+    });
+    track.push({ pts: pts[0], pos: standingsOrder(pts, w, sm.base).indexOf(0) + 1 });
+  });
+  var order = standingsOrder(pts, w, sm.base);
+  return {
+    mine: mine, track: track,
+    table: order.map(function (i, k) { return { team: i, pos: k + 1, w: w[i], d: d[i], l: l[i], pts: pts[i] }; }),
+    pos: order.indexOf(0) + 1, pts: pts[0], w: w[0], d: d[0], l: l[0]
+  };
+}
+/* Many seasons with the same clubs: how often each finishing position happens.
+   Ties use the same order as the table: points, then wins, then model score. */
+function simulateSeasons(sm, runs, rng) {
+  var n = sm.teams.length, hist = new Array(n + 1).fill(0), titles = new Array(n).fill(0), totalPts = 0, flat = [];
+  sm.fixtures.forEach(function (md, di) { md.forEach(function (p, k) { var pr = sm.probs[di][k]; flat.push(p[0], p[1], pr.home, pr.home + pr.draw); }); });
+  var pts = new Float64Array(n), w = new Float64Array(n), base = sm.base, m = flat.length;
+  var ahead = function (a, b) { return pts[a] > pts[b] || (pts[a] === pts[b] && (w[a] > w[b] || (w[a] === w[b] && (base[a] > base[b] || (base[a] === base[b] && a < b))))); };
+  for (var r = 0; r < runs; r++) {
+    pts.fill(0); w.fill(0);
+    for (var i = 0; i < m; i += 4) {
+      var u = rng(), h = flat[i], a = flat[i + 1];
+      if (u < flat[i + 2]) { pts[h] += 3; w[h]++; } else if (u < flat[i + 3]) { pts[h]++; pts[a]++; } else { pts[a] += 3; w[a]++; }
+    }
+    var pos = 1, top = 0;
+    for (var t = 1; t < n; t++) { if (ahead(t, 0)) pos++; if (ahead(t, top)) top = t; }
+    hist[pos]++;
+    titles[top]++;
+    totalPts += pts[0];
+  }
+  var share = function (a, b) { var s = 0; for (var k = a; k <= b; k++) s += hist[k]; return s / runs; };
+  var avgPos = 0;
+  for (var q = 1; q <= n; q++) avgPos += q * hist[q];
+  return { runs: runs, hist: hist, titles: titles, avgPts: totalPts / runs, avgPos: avgPos / runs, title: share(1, 1), top4: share(1, 4), relegated: share(n - 2, n) };
+}
+/* Every club the draft could have produced, given one pass: any four of the first
+   five rivals, in any arrangement. Ranking by expected points = ranking by model score. */
+function allDrafts(league, version) {
+  var five = league.order.slice(0, 5), out = [];
+  var perms = function (arr) {
+    if (arr.length <= 1) return [arr];
+    var res = [];
+    arr.forEach(function (x, i) { perms(arr.slice(0, i).concat(arr.slice(i + 1))).forEach(function (p) { res.push([x].concat(p)); }); });
+    return res;
+  };
+  for (var skip = 0; skip < 5; skip++) {
+    var used = five.filter(function (_, i) { return i !== skip; });
+    perms(used).forEach(function (p) {
+      var picks = {};
+      GAME_SLOTS.forEach(function (f, i) { picks[f.key] = p[i]; });
+      var club = clubFromPicks(league, picks);
+      out.push({ picks: picks, score: baseScore(club, version) });
+    });
+  }
+  out.sort(function (a, b) { return b.score - a.score; });
+  return out;
+}
+function draftRank(drafts, score) {
+  var better = 0;
+  drafts.forEach(function (d) { if (d.score > score + 1e-9) better++; });
+  return better + 1;
+}
+function picksSignature(picks) { return GAME_SLOTS.map(function (f) { return picks[f.key]; }).join("-"); }
+function seasonTier(pos, losses, n) {
+  if (pos === 1 && losses === 0) return { key: "invincible", label: "Invincibles" };
+  if (pos === 1) return { key: "champion", label: "Champions" };
+  if (pos === 2) return { key: "second", label: "Runners-up" };
+  if (pos <= 4) return { key: "top4", label: "Top four" };
+  if (pos <= 7) return { key: "europe", label: "European places" };
+  if (pos <= 10) return { key: "tophalf", label: "Top half" };
+  if (pos <= n - 3) return { key: "mid", label: "Mid-table" };
+  return { key: "down", label: "Relegated" };
+}
+/* Everything the results screen needs, rebuilt from the seed and the picks alone. */
+function gameOutcome(league, picks, version, name) {
+  var club = clubFromPicks(league, picks, name), sm = seasonModel(league, club, version), sig = picksSignature(picks);
+  var season = playSeason(sm, makeRng("season|" + league.seed + "|" + sig));
+  var sims = simulateSeasons(sm, GAME_SIMS, makeRng("sims|" + league.seed + "|" + sig));
+  var drafts = allDrafts(league, version), score = sm.base[0];
+  var best = drafts[0], bestClub = clubFromPicks(league, best.picks);
+  var bestSm = seasonModel(league, bestClub, version);
+  return {
+    club: club, sm: sm, season: season, sims: sims, score: score,
+    xpts: expectedPoints(sm, 0), bestXpts: expectedPoints(bestSm, 0),
+    rank: draftRank(drafts, score), drafts: drafts.length, best: best,
+    tier: seasonTier(season.pos, season.l, sm.teams.length)
+  };
+}
+function gameDayNumber(iso) {
+  var p = function (s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return Date.UTC(+m[1], +m[2] - 1, +m[3]); };
+  return Math.round((p(iso) - p(GAME_EPOCH)) / 86400000) + 1;
+}
+
+
+/* ===== Constants & state ===== */
+const DATA = JSON.parse(document.getElementById("pm-data").textContent);
+const RESET_CSS = ":root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}";
+const FONT_HREF = "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Newsreader:opsz,wght@6..72,400..700&amp;family=Public+Sans:wght@400..700&amp;display=swap";
+const LOADING_HTML = '<div class="wrap" style="padding-block:96px"><p class="fine">Loading PitchMetrics…</p></div>';
+const DRAFT_KEY = "pitchmetrics-draft";
+const MIN_COMPARE = 10;
+const NAV = [["predictions", "Predictions"], ["performance", "Track record"], ["analysis", "Analysis"], ["play", "Play"], ["methodology", "Methodology"], ["development", "Versions"], ["data", "Data"], ["about", "About"]];
+const PARAM_LABEL = { form: "Form", scored: "Goals scored", defense: "Defense", xg: "xG", home: "Home" };
+const FACTOR_NAME = { form: "recent form", scored: "goals scored", defense: "defensive performance", xg: "expected goals (xG)" };
+const FACTOR_NOUN = { form: "recent form", scored: "scoring rate", defense: "defensive record", xg: "chance creation (xG)" };
+const ui = { owner: false, artifact: null, downloads: null, busy: false, selectedId: null, showAll: false, navObserver: null, chartWidth: 0 };
+const app = document.getElementById("app");
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ===== Safe HTML templating ===== */
+function Raw(s) { this.s = s; }
+function raw(s) { return new Raw(s); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function piece(v) {
+  if (v == null || v === false || v === true) return "";
+  if (v instanceof Raw) return v.s;
+  if (Array.isArray(v)) return v.map(piece).join("");
+  return esc(v);
+}
+function html(strings, ...vals) {
+  let out = strings[0];
+  vals.forEach((v, i) => { out += piece(v) + strings[i + 1]; });
+  return raw(out);
+}
+const $ = sel => document.querySelector(sel);
+
+/* ===== Icons ===== */
+const ICON = {
+  logo: '<svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.8" y="4.8" width="20.4" height="14.4" rx="1.6"/><path d="M12 4.8v14.4M1.8 9.2h3.2v5.6H1.8M22.2 9.2H19v5.6h3.2"/><circle cx="12" cy="12" r="2.6"/></svg>',
+  menu: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke-linecap="round"/></svg>',
+  pencil: '<svg class="g-pencil" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2.5l3 3L5 14H2v-3z"/><path d="M9 4l3 3"/></svg>'
+};
+
+/* ===== Data access ===== */
+const currentVersion = () => DATA.modelVersions[DATA.modelVersions.length - 1];
+const versionById = id => DATA.modelVersions.find(v => v.id === id) || currentVersion();
+const previousVersion = v => { const i = DATA.modelVersions.findIndex(x => x.id === v.id); return i > 0 ? DATA.modelVersions[i - 1] : null; };
+const realMatches = () => DATA.matches.filter(m => !m.sample);
+const isSampleMode = () => realMatches().length === 0 && DATA.matches.some(m => m.sample);
+const shownMatches = () => (isSampleMode() ? DATA.matches.filter(m => m.sample) : realMatches());
+const predictionOf = m => m.prediction || predict(m.home, m.away, versionById(m.modelVersion));
+const byKickoff = (a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff);
+function statusOf(m) {
+  if (m.result && m.result.status === "postponed") return "postponed";
+  if (m.result) return "final";
+  return Date.parse(m.kickoff) > Date.now() ? "upcoming" : "awaiting";
+}
+const isFinal = m => statusOf(m) === "final";
+const isCorrect = m => isFinal(m) && resultOutcome(m.result) === predictionOf(m).outcome;
+
+function summarize(ms) {
+  const counted = ms.filter(m => statusOf(m) !== "postponed");
+  const finals = ms.filter(isFinal);
+  const by = { H: { n: 0, c: 0 }, D: { n: 0, c: 0 }, A: { n: 0, c: 0 } };
+  let correct = 0, homeWins = 0;
+  finals.forEach(m => {
+    const o = predictionOf(m).outcome, ok = isCorrect(m);
+    by[o].n++;
+    if (ok) { by[o].c++; correct++; }
+    if (resultOutcome(m.result) === "H") homeWins++;
+  });
+  return {
+    total: counted.length, open: counted.length - finals.length, graded: finals.length, correct: correct,
+    accuracy: finals.length ? correct / finals.length : null,
+    baseline: finals.length ? homeWins / finals.length : null, by: by
+  };
+}
+function timelineSeries(ms) {
+  const finals = ms.filter(isFinal);
+  const gws = Array.from(new Set(finals.map(m => Number(m.gameweek)))).sort((a, b) => a - b);
+  let cc = 0, cn = 0, chw = 0;
+  return gws.map(gw => {
+    const g = finals.filter(m => Number(m.gameweek) === gw);
+    const c = g.filter(isCorrect).length, hw = g.filter(m => resultOutcome(m.result) === "H").length;
+    cc += c; cn += g.length; chw += hw;
+    return { gw: gw, n: g.length, c: c, acc: c / g.length, cum: cc / cn, base: chw / cn, cc: cc, cn: cn };
+  });
+}
+
+/* ===== Formatting ===== */
+const fmtPct = p => Math.round(p * 100) + "%";
+const fmt1 = v => Number(v).toFixed(1);
+const signed = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1);
+const capital = s => s.charAt(0).toUpperCase() + s.slice(1);
+const possessive = n => /s$/i.test(n) ? n + "’" : n + "’s";
+function joinAnd(list) { return list.length < 2 ? list.join("") : list.slice(0, -1).join(", ") + " and " + list[list.length - 1]; }
+function fmtKickoff(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return "Kickoff TBC";
+  return d.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+}
+function fmtDay(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
+  const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+  return isNaN(d) ? "" : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+function fmtLead(ms) {
+  const h = Math.round(ms / 3600000);
+  if (h < 1) return "under an hour";
+  if (h < 48) return h + (h === 1 ? " hour" : " hours");
+  return Math.round(h / 24) + " days";
+}
+function initials(name) {
+  const words = String(name).replace(/&/g, " ").split(/\s+/).filter(w => w && !/^(fc|afc|and|the|of)$/i.test(w));
+  if (!words.length) return "?";
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  return words.slice(0, 3).map(w => w[0]).join("").toUpperCase();
+}
+function hostOf(url) { try { return new URL(url).host.replace(/^www\./, ""); } catch (e) { return url; } }
+function todayISO() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+
+/* ===== Explanation ===== */
+function factorSentence(key, W, L) {
+  switch (key) {
+    case "form": return `${W.name} took ${W.form} points from their last five matches, compared with ${L.form} for ${L.name}.`;
+    case "scored": return `${W.name} scored ${fmt1(W.scored)} goals per game, against ${fmt1(L.scored)} for ${L.name}.`;
+    case "defense": return `${W.name} conceded ${fmt1(W.allowed)} goals per game, while ${L.name} conceded ${fmt1(L.allowed)}.`;
+    default: return `${W.name} created ${W.xg.toFixed(2)} xG per game, compared with ${L.xg.toFixed(2)} for ${L.name}.`;
+  }
+}
+function valuePair(key, A, B) {
+  switch (key) {
+    case "form": return `${A.form} vs ${B.form} points`;
+    case "scored": return `${fmt1(A.scored)} vs ${fmt1(B.scored)} goals per game`;
+    case "defense": return `${fmt1(A.allowed)} vs ${fmt1(B.allowed)} goals conceded per game`;
+    default: return `${A.xg.toFixed(2)} vs ${B.xg.toFixed(2)} xG per game`;
+  }
+}
+function explain(m) {
+  const v = versionById(m.modelVersion), p = predictionOf(m);
+  const ch = contributions(factorRatings(m.home, true, v), v.weights);
+  const ca = contributions(factorRatings(m.away, false, v), v.weights);
+  const diffs = FACTORS.filter(f => f.key !== "home").map(f => ({ key: f.key, d: ch[f.key] - ca[f.key] }));
+  const homeAdv = v.weights.home || 0, abs1 = x => Math.abs(x).toFixed(1), out = [];
+  if (p.outcome === "D") {
+    out.push(`The model scores are ${p.scores.home.toFixed(1)} for ${m.home.name} and ${p.scores.away.toFixed(1)} for ${m.away.name}, a gap of ${abs1(p.gap)} points. That is inside the ±${v.drawZone}-point draw zone, so the model predicts a draw.`);
+    const awayEdges = diffs.filter(x => x.d < -0.25).sort((a, b) => a.d - b.d).slice(0, 2);
+    if (homeAdv > 0 && awayEdges.length) {
+      out.push(`Playing at home is worth ${homeAdv} points to ${m.home.name}. ${possessive(m.away.name)} better ${joinAnd(awayEdges.map(x => FACTOR_NOUN[x.key]))} ${awayEdges.length > 1 ? "cancel" : "cancels"} out most of that advantage.`);
+    } else {
+      out.push("The two teams are closely matched across the five factors.");
+    }
+    return out;
+  }
+  const fav = p.outcome === "H" ? 1 : -1;
+  const W = fav > 0 ? m.home : m.away, L = fav > 0 ? m.away : m.home;
+  const sw = fav > 0 ? p.scores.home : p.scores.away, sl = fav > 0 ? p.scores.away : p.scores.home;
+  out.push(`The model favors ${W.name} by ${abs1(p.gap)} points (${sw.toFixed(1)} to ${sl.toFixed(1)}).`);
+  const pro = diffs.filter(x => x.d * fav > 0.25).sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+  const con = diffs.filter(x => x.d * fav < -0.25).sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+  let s = "";
+  if (pro.length) {
+    s = `${capital(FACTOR_NAME[pro[0].key])} is the biggest factor, worth ${abs1(pro[0].d)} points. ${factorSentence(pro[0].key, W, L)}`;
+    if (pro[1]) s += ` ${capital(FACTOR_NAME[pro[1].key])} adds another ${abs1(pro[1].d)} (${valuePair(pro[1].key, W, L)}).`;
+    if (fav > 0 && homeAdv) s += ` Home advantage adds ${homeAdv} more.`;
+    if (fav < 0 && homeAdv) s += ` That is enough to overcome the ${homeAdv}-point home advantage of ${m.home.name}.`;
+  } else if (fav > 0 && homeAdv) {
+    s = `Home advantage decides it. Playing at home is worth ${homeAdv} points to ${m.home.name}.`;
+  }
+  if (s) out.push(s);
+  if (con.length) out.push(`${L.name} had the better ${FACTOR_NOUN[con[0].key]} (${valuePair(con[0].key, L, W)}), which narrows the gap by ${abs1(con[0].d)} points.`);
+  return out;
+}
+
+/* ===== Small components ===== */
+const SampleTag = () => html`<span class="tag-sample">Sample</span>`;
+const Verdict = ok => ok ? html`<span class="verdict verdict-ok">Correct</span>` : html`<span class="verdict verdict-miss">Incorrect</span>`;
+const signedPts = d => (d >= 0 ? "+" : "−") + Math.abs(Math.round(d * 100)) + " pts";
+function Status(m) {
+  const st = statusOf(m);
+  if (st === "final") return html`<span class="status status-final">Final ${m.result.home}–${m.result.away}</span>`;
+  return html`<span class="status status-${st}">${{ upcoming: "Upcoming", awaiting: "Awaiting result", postponed: "Postponed" }[st]}</span>`;
+}
+function loggedText(m, withVersion) {
+  const lead = Date.parse(m.kickoff) - Date.parse(m.loggedAt);
+  return (lead > 0 ? `logged ${fmtLead(lead)} before kickoff` : "logged after kickoff") + (withVersion ? ` · model v${m.modelVersion}` : "");
+}
+function ProbBar(probs) {
+  const t = percentTriple(probs);
+  return html`<div class="prob">
+    <div class="prob-bar" role="img" aria-label="Model probabilities: home win ${t.home}%, draw ${t.draw}%, away win ${t.away}%">
+      <span class="h" style="flex:${t.home} 1 0"></span><span class="d" style="flex:${t.draw} 1 0"></span><span class="a" style="flex:${t.away} 1 0"></span>
+    </div>
+    <div class="prob-legend" aria-hidden="true"><span><i class="k-h"></i>Home <b>${t.home}%</b></span><span><i class="k-d"></i>Draw <b>${t.draw}%</b></span><span><i class="k-a"></i>Away <b>${t.away}%</b></span></div>
+  </div>`;
+}
+function Call(p) {
+  return html`<div class="call">
+    <div class="stack"><span class="label">Model prediction</span><span class="outcome o-${p.outcome}">${OUTCOME_LABEL[p.outcome]}</span></div>
+    <div class="stack right"><span class="label">Confidence</span><span class="conf">${fmtPct(p.confidence)}</span></div>
+  </div>`;
+}
+function TeamLabel(t, side) {
+  return html`<span class="team"><i class="side-mark ${side}" aria-hidden="true"></i><span class="team-name">${t.name}</span><span class="sr-only"> (${side})</span></span>`;
+}
+function MatchTable(m, p) {
+  const better = (k, low) => ({ home: low ? m.home[k] < m.away[k] : m.home[k] > m.away[k], away: low ? m.away[k] < m.home[k] : m.away[k] > m.home[k] });
+  const B = { form: better("form"), scored: better("scored"), allowed: better("allowed", true), xg: better("xg") };
+  const cls = (k, side) => (B[k][side] ? "better" : "");
+  const row = (side, t, score) => html`<tr>
+    <th scope="row">${TeamLabel(t, side)}</th>
+    <td class="${cls("form", side)}">${t.form}</td>
+    <td class="${cls("scored", side)}">${fmt1(t.scored)}</td>
+    <td class="${cls("allowed", side)}">${fmt1(t.allowed)}</td>
+    <td class="${cls("xg", side)}">${Number(t.xg).toFixed(2)}</td>
+    <td class="score">${score.toFixed(1)}</td>
+  </tr>`;
+  return html`<table class="ptable">
+    <caption class="sr-only">Statistics from each team’s last five Premier League matches, and the model score</caption>
+    <thead><tr>
+      <th scope="col">Last 5 matches</th>
+      <th scope="col"><abbr title="Points from the last five matches">Pts</abbr></th>
+      <th scope="col"><abbr title="Goals scored per game">GF</abbr></th>
+      <th scope="col"><abbr title="Goals allowed per game">GA</abbr></th>
+      <th scope="col"><abbr title="Expected goals per game">xG</abbr></th>
+      <th scope="col" class="score"><abbr title="Model score out of 100">Score</abbr></th>
+    </tr></thead>
+    <tbody>${row("home", m.home, p.scores.home)}${row("away", m.away, p.scores.away)}</tbody>
+  </table>`;
+}
+function BlockHead(o) {
+  const showSample = o.sample && isSampleMode();
+  return html`<header class="block-head">
+    <div class="block-title"><h2>${o.title}${showSample ? html` <span class="tag-sample h2-tag">Sample data</span>` : ""}${o.tag ? html` <span class="tag-game h2-tag">${o.tag}</span>` : ""}</h2>${o.lede ? html`<p>${o.lede}</p>` : ""}</div>
+    ${o.aside ? html`<div class="block-aside">${o.aside}</div>` : ""}
+  </header>`;
+}
+
+/* ===== Header, banners ===== */
+function Header() {
+  return html`<header class="site-header"><div class="wrap header-row">
+    <a class="brand" href="#top" data-nav="top" aria-label="PitchMetrics, back to top">${raw(ICON.logo)}<span class="brand-name">PitchMetrics</span></a>
+    <button class="menu-btn" type="button" data-action="menu" aria-expanded="false" aria-controls="site-nav">${raw(ICON.menu)}Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Sections">${NAV.map(([id, label]) => html`<a href="#${id}" data-nav="${id}">${label}</a>`)}</nav>
+  </div></header>`;
+}
+function SampleBanner() {
+  if (!isSampleMode()) return "";
+  return html`<div class="banner banner-sample" role="note"><div class="wrap banner-row"><span><strong>Sample data.</strong> The clubs, matches and numbers on this page are placeholders that preview the layout. They are removed when the first real prediction is logged.</span></div></div>`;
+}
+function OwnerBar() {
+  if (!ui.owner) return "";
+  return html`<div class="banner banner-owner"><div class="wrap banner-row">
+    <span><strong>Owner view.</strong> Only you can see these editing tools.</span>
+    <div class="banner-actions">
+      <button class="btn btn-primary btn-sm" type="button" data-action="open" data-panel="log">Log a prediction</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="open" data-panel="version">Add model version</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="open" data-panel="settings">Site details</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="export-site" title="A copy of this site for GitHub Pages or any other web host">Download website file</button>
+      ${isSampleMode() ? html`<button class="btn btn-danger btn-sm" type="button" data-action="remove-sample">Remove sample data</button>` : ""}
+    </div>
+    <span class="form-msg" id="owner-msg" role="status"></span>
+  </div></div>`;
+}
+
+/* ===== Hero ===== */
+function featuredMatch() {
+  const ms = shownMatches();
+  const up = ms.filter(m => statusOf(m) === "upcoming").sort(byKickoff)[0];
+  if (up) return up;
+  const sorted = ms.slice().sort(byKickoff);
+  return sorted[sorted.length - 1] || null;
+}
+function KeyFigures() {
+  const t = trackStats(shownMatches()), v = currentVersion();
+  const items = t.graded ? [
+    ["Predictions published", String(t.total), t.open ? `${t.open} awaiting a result` : "All graded"],
+    ["Graded", String(t.graded), `${t.correct} correct`],
+    ["Accuracy", fmtPct(t.accuracy), "Predicted outcome happened"],
+    ["Against always picking home", signedPts(t.accuracy - t.baseline), `Baseline ${fmtPct(t.baseline)}`]
+  ] : [
+    ["Predictions published", String(t.total), t.total ? "None graded yet" : "None published yet"],
+    ["Current model", "v" + v.id, fmtDay(v.date)],
+    ["Season", DATA.site.season, "Premier League"],
+    ["Data window", "5 matches", "Per team, per prediction"]
+  ];
+  return html`<div class="figures-head"><span class="label">At a glance</span>${isSampleMode() && t.graded ? html`<span class="fine">Calculated from the sample data</span>` : ""}</div>
+    <dl class="figures">${items.map(([k, val, sub]) => html`<div><dt>${k}</dt><dd>${val}<small>${sub}</small></dd></div>`)}</dl>`;
+}
+function NextPanel(m) {
+  const p = predictionOf(m), st = statusOf(m);
+  const label = st === "upcoming" ? "Next prediction" : st === "awaiting" ? "Awaiting result" : "Latest prediction";
+  return html`<aside class="panel next" aria-label="${label}">
+    <div class="panel-head"><span class="label">${label}</span>${m.sample ? SampleTag() : ""}</div>
+    <p class="fine" style="margin-top:-10px">GW ${m.gameweek} · ${fmtKickoff(m.kickoff)}</p>
+    <div>
+      <div class="scoreboard-head"><span class="fine">Team</span><span class="fine">Model score</span></div>
+      <div class="scoreboard">
+        <div class="scoreboard-row">${TeamLabel(m.home, "home")}<span class="v">${p.scores.home.toFixed(1)}</span></div>
+        <div class="scoreboard-row">${TeamLabel(m.away, "away")}<span class="v">${p.scores.away.toFixed(1)}</span></div>
+      </div>
+    </div>
+    ${Call(p)}
+    ${ProbBar(p.probs)}
+    <div class="pcard-foot"><span class="fine">Statistical estimate, not a guaranteed outcome.</span><button class="link" type="button" data-action="analyze" data-id="${m.id}">Analysis →</button></div>
+  </aside>`;
+}
+function ModelGlance(v) {
+  return html`<aside class="panel next" aria-label="Model at a glance">
+    <div class="panel-head"><span class="label">Model v${v.id}</span><span class="fine">Weights out of 100</span></div>
+    <div class="scoreboard">${FACTORS.map(f => html`<div class="scoreboard-row"><span>${f.label}</span><span class="wcell"><span class="wbar"><i style="width:${v.weights[f.key]}%"></i></span><b class="num">${v.weights[f.key]}%</b></span></div>`)}</div>
+    <p class="fine">The first prediction will appear here before kickoff.</p>
+  </aside>`;
+}
+function Hero() {
+  const v = currentVersion(), f = featuredMatch();
+  return html`<section class="hero" id="top"><div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <p class="kicker"><b>Independent Sports Analytics Project</b> · Premier League ${DATA.site.season}</p>
+        <h1 class="hero-title">PitchMetrics</h1>
+        <p class="hero-sub">Premier League Match Prediction Through Data</p>
+        <p class="hero-abstract">A research project testing how well public football statistics predict Premier League results. A weighted model rates both teams on recent form, goals scored, goals allowed, expected goals (xG) and home advantage, then predicts a home win, draw or away win. Every prediction is published before kickoff and graded against the final result.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="#predictions" data-nav="predictions">View Predictions</a>
+          <a class="btn btn-secondary" href="#methodology" data-nav="methodology">How the Model Works</a>
+          <a class="link hero-play" href="#play" data-nav="play">Play the Title Race game →</a>
+        </div>
+      </div>
+      ${f ? NextPanel(f) : ModelGlance(v)}
+    </div>
+    ${KeyFigures()}
+  </div></section>`;
+}
+
+/* ===== Predictions ===== */
+function PredictionCard(m) {
+  const p = predictionOf(m);
+  return html`<article class="pcard" aria-label="${m.home.name} v ${m.away.name}">
+    <div class="pcard-head"><span>GW ${m.gameweek} · ${fmtKickoff(m.kickoff)}</span><span class="flags">${Status(m)}${m.sample ? SampleTag() : ""}</span></div>
+    ${MatchTable(m, p)}
+    ${Call(p)}
+    ${ProbBar(p.probs)}
+    <div class="pcard-foot"><span class="fine">Statistical estimate · ${loggedText(m)}</span><button class="link" type="button" data-action="analyze" data-id="${m.id}">Analysis →</button></div>
+    ${ui.owner && !m.sample ? OwnerMatchControls(m) : ""}
+  </article>`;
+}
+function OwnerMatchControls(m) {
+  const st = statusOf(m);
+  if (st === "upcoming") {
+    return html`<div class="owner-row"><span class="label">Owner</span><span class="fine">The result can be entered after kickoff.</span>
+      <button class="btn btn-danger btn-sm" type="button" data-action="delete" data-id="${m.id}">Delete prediction</button>
+      <span class="form-msg" id="msg-${m.id}" role="status"></span></div>`;
+  }
+  if (st === "awaiting") {
+    return html`<div class="owner-row"><span class="label">Final score</span>
+      <input class="score-in" id="rh-${m.id}" type="number" inputmode="numeric" min="0" max="20" step="1" aria-label="${m.home.name} goals">
+      <span aria-hidden="true">–</span>
+      <input class="score-in" id="ra-${m.id}" type="number" inputmode="numeric" min="0" max="20" step="1" aria-label="${m.away.name} goals">
+      <button class="btn btn-primary btn-sm" type="button" data-action="save-result" data-id="${m.id}">Save result</button>
+      <button class="btn btn-ghost btn-sm" type="button" data-action="postpone" data-id="${m.id}">Mark postponed</button>
+      <span class="form-msg" id="msg-${m.id}" role="status"></span></div>`;
+  }
+  return "";
+}
+function PredictionsSection() {
+  const open = shownMatches().filter(m => { const s = statusOf(m); return s === "upcoming" || s === "awaiting"; }).sort(byKickoff);
+  return html`<section class="block" id="predictions"><div class="wrap">
+    ${BlockHead({
+      title: "Upcoming predictions",
+      lede: "Model output for matches that have not been played yet. These are statistical estimates, not guaranteed outcomes; each one is published before kickoff and graded after full time.",
+      aside: ui.owner ? html`<button class="btn btn-primary" type="button" data-action="open" data-panel="log">Log a prediction</button>` : ""
+    })}
+    ${ui.owner ? LogForm() : ""}
+    ${open.length
+      ? html`<div class="pgrid">${open.map(PredictionCard)}</div>`
+      : html`<div class="empty"><strong>No open predictions right now.</strong>${ui.owner ? "Use “Log a prediction” to add the next gameweek’s matches." : "Predictions for the next gameweek will appear here before kickoff."}</div>`}
+  </div></section>`;
+}
+
+/* ===== Track record ===== */
+const BANDS = [[0, 0.4, "Below 40%"], [0.4, 0.5, "40% to 50%"], [0.5, 0.6, "50% to 60%"], [0.6, 1.01, "60% or more"]];
+function trackStats(ms) {
+  const s = summarize(ms), fin = ms.filter(isFinal);
+  const conf = m => predictionOf(m).confidence;
+  s.avgConf = fin.length ? fin.reduce((t, m) => t + conf(m), 0) / fin.length : null;
+  s.brier = fin.length ? fin.reduce((t, m) => {
+    const p = predictionOf(m).probs, o = resultOutcome(m.result);
+    return t + Math.pow(p.home - (o === "H" ? 1 : 0), 2) + Math.pow(p.draw - (o === "D" ? 1 : 0), 2) + Math.pow(p.away - (o === "A" ? 1 : 0), 2);
+  }, 0) / fin.length : null;
+  s.bands = BANDS.map(([lo, hi, label]) => {
+    const g = fin.filter(m => conf(m) >= lo && conf(m) < hi);
+    return { label: label, n: g.length, c: g.filter(isCorrect).length, avg: g.length ? g.reduce((t, m) => t + conf(m), 0) / g.length : null };
+  });
+  return s;
+}
+function TrackRecordSection() {
+  const ms = shownMatches(), t = trackStats(ms);
+  const pctOf = (c, n) => (n ? fmtPct(c / n) : "—");
+  const outcomeRows = ["H", "D", "A"].map(o => html`<tr><td><span class="outcome-sm o-${o}">${OUTCOME_LABEL[o]}</span></td><td>${t.by[o].n}</td><td>${t.by[o].c}</td><td class="em">${pctOf(t.by[o].c, t.by[o].n)}</td></tr>`);
+  return html`<section class="block" id="performance"><div class="wrap">
+    ${BlockHead({
+      title: "Track record", sample: true,
+      lede: "How the published predictions have performed. A prediction counts as correct when the predicted outcome happens; postponed matches are left out of every figure."
+    })}
+    <div class="tr-grid">
+      <div>
+        <span class="label">Overall accuracy</span>
+        <p class="big">${t.graded ? fmtPct(t.accuracy) : "—"}</p>
+        <p class="big-cap">${t.graded ? `${t.correct} of ${t.graded} graded predictions were correct.` : "Accuracy appears after the first graded match."}</p>
+        <dl class="statlist">
+          <div><dt>Predictions published</dt><dd>${t.total}<span>${t.open} awaiting a result</span></dd></div>
+          ${t.graded ? html`
+          <div><dt>Always picking the home team</dt><dd>${fmtPct(t.baseline)}<span>Model ${signedPts(t.accuracy - t.baseline)}</span></dd></div>
+          <div><dt>Brier score</dt><dd>${t.brier.toFixed(3)}<span>Lower is better; guessing ⅓ each scores 0.667</span></dd></div>
+          <div><dt>Average confidence</dt><dd>${fmtPct(t.avgConf)}<span>On graded predictions</span></dd></div>` : ""}
+        </dl>
+      </div>
+      <figure>
+        <div class="figure-head"><h3>Cumulative accuracy by gameweek</h3><span class="fine">n = ${t.graded} graded</span></div>
+        <div class="chart-wrap" id="acc-chart"></div>
+        <figcaption>Share of graded predictions that were correct after each gameweek, compared with always predicting a home win. Hover or tap a gameweek for details.</figcaption>
+      </figure>
+    </div>
+    ${t.graded ? html`<div class="tr-tables">
+      <div>
+        <table class="dtable"><caption>Accuracy by predicted outcome</caption>
+          <thead><tr><th scope="col">Prediction</th><th scope="col">Made</th><th scope="col">Correct</th><th scope="col">Accuracy</th></tr></thead>
+          <tbody>${outcomeRows}</tbody>
+          <tfoot><tr><td>All predictions</td><td>${t.graded}</td><td>${t.correct}</td><td>${fmtPct(t.accuracy)}</td></tr></tfoot>
+        </table>
+      </div>
+      <div>
+        <table class="dtable"><caption>Calibration</caption>
+          <thead><tr><th scope="col">Confidence</th><th scope="col">Predictions</th><th scope="col">Avg. confidence</th><th scope="col">Hit rate</th></tr></thead>
+          <tbody>${t.bands.map(b => html`<tr><td>${b.label}</td><td>${b.n}</td><td>${b.n ? fmtPct(b.avg) : "—"}</td><td class="em">${pctOf(b.c, b.n)}</td></tr>`)}</tbody>
+        </table>
+        <p class="fine table-note">A well-calibrated model is right about as often as its confidence says. With few predictions in a band, the hit rate is noisy.</p>
+      </div>
+    </div>` : ""}
+    <div class="results-block">
+      <h3 class="sub-h">Recent results</h3>
+      <div id="results-list">${ResultsList(ms)}</div>
+    </div>
+  </div></section>`;
+}
+function ResultsList(ms) {
+  const done = ms.filter(m => { const s = statusOf(m); return s === "final" || s === "postponed"; }).sort((a, b) => byKickoff(b, a));
+  if (!done.length) return html`<div class="empty"><strong>No results yet.</strong>Graded predictions will be listed here with the final score.</div>`;
+  const list = ui.showAll ? done : done.slice(0, 6);
+  return html`<div class="rhead" aria-hidden="true"><span>GW</span><span>Match</span><span>Prediction</span><span class="num">Conf.</span><span>Result</span><span class="go"></span></div>
+    <ol class="rlist">${list.map(ResultRow)}</ol>
+    ${done.length > 6 ? html`<button class="btn btn-secondary btn-sm more" type="button" data-action="toggle-results">${ui.showAll ? "Show fewer results" : `Show all ${done.length} results`}</button>` : ""}`;
+}
+function ResultRow(m) {
+  const p = predictionOf(m), st = statusOf(m);
+  const score = st === "final" ? `${m.result.home}–${m.result.away}` : "P–P";
+  return html`<li class="rrow">
+    <span class="gw">${m.gameweek}</span>
+    <span class="match">${m.home.name} <span class="score">${score}</span> ${m.away.name}</span>
+    <span class="pred"><span class="outcome-sm o-${p.outcome}">${OUTCOME_LABEL[p.outcome]}</span></span>
+    <span class="cf num">${fmtPct(p.confidence)}</span>
+    <span class="res">${st === "final" ? Verdict(isCorrect(m)) : html`<span class="verdict verdict-void">Not counted</span>`}</span>
+    <span class="go"><button class="link" type="button" data-action="analyze" data-id="${m.id}">Analysis</button></span>
+    <span class="meta-m">GW${m.gameweek} · Predicted ${OUTCOME_LABEL[p.outcome]} · ${fmtPct(p.confidence)}</span>
+    ${ui.owner && !m.sample ? html`<div class="rowner"><button class="btn btn-ghost btn-sm" type="button" data-action="reopen" data-id="${m.id}">${st === "final" ? "Edit result" : "Undo postponed"}</button><span class="form-msg" id="msg-${m.id}" role="status"></span></div>` : ""}
+  </li>`;
+}
+function drawChart() {
+  const el = document.getElementById("acc-chart");
+  if (!el) return;
+  const series = timelineSeries(shownMatches());
+  const width = Math.max(280, Math.floor(el.clientWidth));
+  ui.chartWidth = width;
+  if (!series.length) {
+    el.innerHTML = '<div class="empty"><strong>No graded predictions yet.</strong>The chart starts once the first gameweek has results.</div>';
+    return;
+  }
+  const narrow = width < 520;
+  const H = narrow ? 230 : 290, M = { t: 14, r: narrow ? 12 : 128, b: 34, l: 44 };
+  const w = width - M.l - M.r, h = H - M.t - M.b, n = series.length, last = series[n - 1];
+  const x = i => (n === 1 ? M.l + w / 2 : M.l + (w * i) / (n - 1));
+  const y = v => M.t + (1 - v) * h;
+  let s = `<svg viewBox="0 0 ${width} ${H}" width="${width}" height="${H}" role="img" aria-label="Cumulative accuracy by gameweek. After gameweek ${last.gw}: model ${fmtPct(last.cum)}, always picking home ${fmtPct(last.base)}.">`;
+  [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+    s += `<line class="${t === 0 ? "c-axis" : "c-grid"}" x1="${M.l}" x2="${M.l + w}" y1="${y(t)}" y2="${y(t)}"/>`;
+    s += `<text class="c-tick" x="${M.l - 10}" y="${y(t) + 4}" text-anchor="end">${t * 100}%</text>`;
+  });
+  const step = Math.max(1, Math.ceil(n / Math.max(1, Math.floor(w / 46))));
+  series.forEach((d, i) => { if (i % step === 0 || i === n - 1) s += `<text class="c-tick" x="${x(i).toFixed(1)}" y="${H - 10}" text-anchor="middle">GW${d.gw}</text>`; });
+  const path = k => series.map((d, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(d[k]).toFixed(1)).join(" ");
+  if (n > 1) s += `<path class="c-base" d="${path("base")}"/><path class="c-model" d="${path("cum")}"/>`;
+  else s += `<line class="c-base" x1="${x(0) - 16}" x2="${x(0) + 16}" y1="${y(last.base)}" y2="${y(last.base)}"/>`;
+  series.forEach((d, i) => { s += `<circle class="c-dot${i === n - 1 ? " last" : ""}" cx="${x(i).toFixed(1)}" cy="${y(d.cum).toFixed(1)}" r="${i === n - 1 ? 4.5 : 3.5}"/>`; });
+  if (!narrow) {
+    let ym = y(last.cum), yb = y(last.base);
+    if (Math.abs(ym - yb) < 18) { const mid = (ym + yb) / 2, up = ym <= yb ? -1 : 1; ym = mid + up * 9; yb = mid - up * 9; }
+    s += `<text class="c-lbl model" x="${(x(n - 1) + 12).toFixed(1)}" y="${(ym + 4).toFixed(1)}">Model ${fmtPct(last.cum)}</text>`;
+    s += `<text class="c-lbl base" x="${(x(n - 1) + 12).toFixed(1)}" y="${(yb + 4).toFixed(1)}">Always home ${fmtPct(last.base)}</text>`;
+  }
+  const half = n === 1 ? w / 2 : w / (n - 1) / 2;
+  series.forEach((d, i) => {
+    const x0 = Math.max(M.l, x(i) - half), x1 = Math.min(M.l + w, x(i) + half);
+    s += `<rect class="c-hit" data-i="${i}" x="${x0.toFixed(1)}" y="${M.t}" width="${(x1 - x0).toFixed(1)}" height="${h}"/>`;
+  });
+  s += "</svg>";
+  const legend = narrow ? '<div class="chart-legend"><span><i class="lg-model"></i>Model</span><span><i class="lg-base"></i>Always picking home</span></div>' : "";
+  el.innerHTML = s + legend + '<div class="tooltip" hidden></div>';
+  const tip = el.querySelector(".tooltip");
+  el.querySelectorAll(".c-hit").forEach(r => {
+    const show = () => {
+      const i = +r.dataset.i, d = series[i];
+      el.querySelectorAll(".c-hit").forEach(o => o.classList.toggle("on", o === r));
+      tip.innerHTML = `<b>Gameweek ${d.gw}</b><br>${d.c} of ${d.n} correct this gameweek<br>Season to date: ${fmtPct(d.cum)} (${d.cc} of ${d.cn})<br>Always home: ${fmtPct(d.base)}`;
+      tip.hidden = false;
+      const tw = tip.offsetWidth;
+      tip.style.left = Math.min(Math.max(0, x(i) - tw / 2), width - tw) + "px";
+      tip.style.top = Math.max(0, y(d.cum) - tip.offsetHeight - 14) + "px";
+    };
+    r.addEventListener("pointerenter", show);
+    r.addEventListener("pointerdown", show);
+    r.addEventListener("pointerleave", () => { tip.hidden = true; r.classList.remove("on"); });
+  });
+}
+
+/* ===== Match analysis ===== */
+const COMPARE_ROWS = [
+  { key: "form", label: "Recent form", unit: "points, last 5", max: 15, fmt: v => String(v) },
+  { key: "scored", label: "Goals scored", unit: "per game", max: 3, fmt: v => fmt1(v) },
+  { key: "allowed", label: "Goals allowed", unit: "per game, lower is better", max: 3, fmt: v => fmt1(v), low: true },
+  { key: "xg", label: "Expected goals (xG)", unit: "per game", max: 3, fmt: v => Number(v).toFixed(2) }
+];
+function defaultAnalysisId(ms) {
+  const up = ms.filter(m => statusOf(m) === "upcoming").sort(byKickoff)[0];
+  if (up) return up.id;
+  const sorted = ms.slice().sort(byKickoff);
+  return sorted[sorted.length - 1].id;
+}
+function AnalysisSection() {
+  const ms = shownMatches().slice().sort(byKickoff);
+  const head = BlockHead({
+    title: "Match analysis",
+    lede: "How the model reached a prediction: the inputs for both teams, how much each factor contributed to the score, and a plain-language summary."
+  });
+  if (!ms.length) return html`<section class="block" id="analysis"><div class="wrap">${head}<div class="empty"><strong>No matches to analyze yet.</strong>Analysis appears as soon as the first prediction is logged.</div></div></section>`;
+  if (!ms.some(m => m.id === ui.selectedId)) ui.selectedId = defaultAnalysisId(ms);
+  const open = ms.filter(m => ["upcoming", "awaiting"].includes(statusOf(m)));
+  const done = ms.filter(m => ["final", "postponed"].includes(statusOf(m))).reverse();
+  const opt = m => html`<option value="${m.id}"${raw(m.id === ui.selectedId ? " selected" : "")}>GW${m.gameweek} · ${m.home.name} v ${m.away.name}${statusOf(m) === "final" ? ` (${m.result.home}–${m.result.away})` : ""}</option>`;
+  return html`<section class="block" id="analysis"><div class="wrap">
+    ${head}
+    <div class="picker"><label for="match-select">Match</label>
+      <select id="match-select">
+        ${open.length ? html`<optgroup label="Upcoming">${open.map(opt)}</optgroup>` : ""}
+        ${done.length ? html`<optgroup label="Completed">${done.map(opt)}</optgroup>` : ""}
+      </select>
+    </div>
+    <div id="analysis-body">${AnalysisBody(DATA.matches.find(m => m.id === ui.selectedId))}</div>
+  </div></section>`;
+}
+function AnalysisBody(m) {
+  const p = predictionOf(m), v = versionById(m.modelVersion), st = statusOf(m);
+  return html`<article class="panel an">
+    <div class="an-main">
+      <div class="an-meta"><span>GW ${m.gameweek} · ${fmtKickoff(m.kickoff)}</span><span class="flags">${Status(m)}${m.sample ? SampleTag() : ""}</span></div>
+      <h3 class="an-title">${m.home.name} <span class="v">v</span> ${m.away.name}</h3>
+      ${Call(p)}
+      ${ProbBar(p.probs)}
+      <div class="an-scores">
+        <div class="s"><span class="fine">${m.home.name}</span><span class="v">${p.scores.home.toFixed(1)}</span></div>
+        <div class="gap">gap<br>${signed(p.gap)}</div>
+        <div class="s"><span class="fine">${m.away.name}</span><span class="v">${p.scores.away.toFixed(1)}</span></div>
+      </div>
+      ${st === "final" ? html`<div class="result-line"><span>Final score <b class="num">${m.result.home}–${m.result.away}</b> · ${OUTCOME_LABEL[resultOutcome(m.result)]}</span>${Verdict(isCorrect(m))}</div>` : ""}
+      ${st === "postponed" ? html`<div class="result-line"><span>Match postponed</span><span class="verdict verdict-void">Not counted</span></div>` : ""}
+      <div class="explain"><h4>Why the model leans this way</h4>${explain(m).map(t => html`<p>${t}</p>`)}</div>
+      <p class="fine">Statistical estimate · ${loggedText(m, true)}</p>
+    </div>
+    <div class="an-side">
+      <section aria-labelledby="cmp-title"><div class="head"><h4 id="cmp-title">Last five matches</h4><span class="fine">Premier League only</span></div>${Compare(m)}</section>
+      <section aria-labelledby="ctb-title"><div class="head"><h4 id="ctb-title">Score breakdown</h4><span class="fine">Model points out of 100 · v${v.id}</span></div>${ContribTable(m, v, p)}</section>
+    </div>
+  </article>`;
+}
+function Compare(m) {
+  return html`<div class="compare">
+    <div class="cmp-key"><span>${raw('<i class="side-mark home" aria-hidden="true"></i>')}${m.home.name}</span><span>${m.away.name}${raw('<i class="side-mark away" aria-hidden="true"></i>')}</span></div>
+    ${COMPARE_ROWS.map(r => {
+      const h = m.home[r.key], a = m.away[r.key];
+      const hb = r.low ? h < a : h > a, ab = r.low ? a < h : a > h;
+      const hw = Math.min(100, (h / r.max) * 100), aw = Math.min(100, (a / r.max) * 100);
+      return html`<div class="cmp-row">
+        <div class="cmp-label"><span>${r.label}</span><span class="fine">${r.unit}</span></div>
+        <div class="cmp-bars">
+          <span class="cmp-val${hb ? " better" : ""}">${r.fmt(h)}</span>
+          <span class="cmp-track left"><span class="cmp-fill h${ab ? " dim" : ""}" style="width:${hw.toFixed(1)}%"></span></span>
+          <span class="cmp-track"><span class="cmp-fill a${hb ? " dim" : ""}" style="width:${aw.toFixed(1)}%"></span></span>
+          <span class="cmp-val${ab ? " better" : ""}">${r.fmt(a)}</span>
+        </div>
+      </div>`;
+    })}
+  </div>`;
+}
+function ContribTable(m, v, p) {
+  const ch = contributions(factorRatings(m.home, true, v), v.weights);
+  const ca = contributions(factorRatings(m.away, false, v), v.weights);
+  const hi = initials(m.home.name), ai = initials(m.away.name);
+  const edge = d => (Math.abs(d) < 0.05 ? html`<td class="edge-n">Even</td>` : html`<td class="${d > 0 ? "edge-h" : "edge-a"}">${d > 0 ? hi : ai} +${Math.abs(d).toFixed(1)}</td>`);
+  return html`<div class="table-scroll"><table class="dtable">
+    <thead><tr><th scope="col">Factor</th><th scope="col">Weight</th><th scope="col"><abbr title="${m.home.name}">${hi}</abbr></th><th scope="col"><abbr title="${m.away.name}">${ai}</abbr></th><th scope="col">Edge</th></tr></thead>
+    <tbody>${FACTORS.map(f => html`<tr><td>${f.label}</td><td>${v.weights[f.key]}%</td><td>${ch[f.key].toFixed(1)}</td><td>${ca[f.key].toFixed(1)}</td>${edge(ch[f.key] - ca[f.key])}</tr>`)}</tbody>
+    <tfoot><tr><td>Model score</td><td>100%</td><td>${p.scores.home.toFixed(1)}</td><td>${p.scores.away.toFixed(1)}</td>${edge(p.gap)}</tr></tfoot>
+  </table></div>
+  <p class="fine table-note">Points = rating × weight ÷ 100. Rows may not add up exactly because of rounding.</p>`;
+}
+
+/* ===== Methodology ===== */
+const FACTOR_INFO = {
+  form: { rule: "points ÷ 15 × 100", text: "Points from the last five matches: 3 for a win, 1 for a draw, 0 for a loss." },
+  scored: { rule: "goals per game ÷ 3 × 100, max 100", text: "Average goals scored per match." },
+  defense: { rule: "(1 − goals allowed ÷ 3) × 100, min 0", text: "Average goals allowed per match. Fewer is better." },
+  xg: { rule: "xG per game ÷ 3 × 100, max 100", text: "Quality of the chances a team creates, measured as expected goals." },
+  home: { rule: "home team 100, away team 0", text: "Bonus for playing at the home ground." }
+};
+function MethodologySection() {
+  const v = currentVersion(), W = v.weights, c = cutPoint(v);
+  return html`<section class="block" id="methodology"><div class="wrap">
+    ${BlockHead({
+      title: "Methodology",
+      lede: "Each team receives a model score out of 100, built from five weighted factors. Recent statistics are calculated primarily from each team’s previous five Premier League matches."
+    })}
+    <div class="method-grid">
+      <div>
+        <h3 class="sub-h">Procedure</h3>
+        <ol class="proc">
+          <li><div><h4>Collect the last five matches</h4><p>For both teams: points earned, goals scored, goals allowed and expected goals from the five most recent Premier League matches.</p></div></li>
+          <li><div><h4>Convert to ratings</h4><p>Turn each statistic into a rating from 0 to 100 so points, goals and xG share one scale.</p></div></li>
+          <li><div><h4>Apply the weights</h4><p>Multiply each rating by its weight and add them up. The total is the team’s model score.</p></div></li>
+          <li><div><h4>Compare the two scores</h4><p>Within ±${v.drawZone} points, the model predicts a draw. Otherwise it predicts a win for the higher score.</p></div></li>
+          <li><div><h4>Publish, then grade</h4><p>Record the prediction before kickoff and compare it with the final result after the match.</p></div></li>
+        </ol>
+      </div>
+      <div>
+        <table class="dtable ftable"><caption>Model score, version ${v.id}</caption>
+          <thead><tr><th scope="col">Factor</th><th scope="col" class="rule">Rating, 0 to 100</th><th scope="col">Weight</th></tr></thead>
+          <tbody>${FACTORS.map(f => html`<tr>
+            <td><span class="fname">${f.label}</span><span class="fdesc">${FACTOR_INFO[f.key].text}</span></td>
+            <td class="rule"><code>${FACTOR_INFO[f.key].rule}</code></td>
+            <td><span class="wcell"><span class="wbar" aria-hidden="true"><i style="width:${W[f.key]}%"></i></span>${W[f.key]}%</span></td>
+          </tr>`)}</tbody>
+          <tfoot><tr><td>Model score</td><td class="rule"><code>sum of rating × weight ÷ 100</code></td><td><span class="wcell">100%</span></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="method-grid">
+      <div>
+        <h3 class="sub-h">Limitations</h3>
+        <ul class="bullets">
+          <li>Five matches is a small sample, so one unusual result can move a rating a lot.</li>
+          <li>Form and goals are not adjusted for the strength of the opponents a team has just played.</li>
+          <li>Injuries, suspensions and squad rotation are not part of the model.</li>
+          <li>Draws are the hardest outcome to predict, so their accuracy is reported separately.</li>
+          <li>Early in the season, a team’s last five Premier League matches include games from the previous season.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="sub-h">From scores to probabilities</h3>
+        <div class="prose">
+          <p>The gap between the two model scores is turned into home, draw and away probabilities with an ordered logistic curve. Confidence is the probability given to the predicted outcome.</p>
+          <p>The constant c is set so that a draw is the most likely outcome exactly when the gap is inside ±${v.drawZone} points. That keeps the probabilities consistent with the prediction rule above.</p>
+        </div>
+        <pre class="formula">${`gap         = home score − away score
+P(home win) = 1 / (1 + e^−(gap ÷ ${v.scale} − c))
+P(away win) = 1 / (1 + e^(gap ÷ ${v.scale} + c))
+P(draw)     = 1 − P(home win) − P(away win)
+c           = ${c.toFixed(3)}`}</pre>
+      </div>
+    </div>
+  </div></section>`;
+}
+
+/* ===== Model development ===== */
+function nextVersionId(id) {
+  const m = /^(\d+)\.(\d+)$/.exec(id || "");
+  return m ? m[1] + "." + (Number(m[2]) + 1) : "";
+}
+function VersionEntry(v) {
+  const isCurrent = v.id === currentVersion().id;
+  const ms = shownMatches().filter(m => m.modelVersion === v.id && isFinal(m));
+  const c = ms.filter(isCorrect).length, acc = ms.length ? c / ms.length : null;
+  const prev = previousVersion(v);
+  let compare;
+  if (!prev) compare = html`<b>First version</b><span class="fine">Baseline for later versions</span>`;
+  else {
+    const pf = shownMatches().filter(m => m.modelVersion === prev.id && isFinal(m));
+    if (ms.length < MIN_COMPARE || pf.length < MIN_COMPARE) {
+      compare = html`<b>Too early to compare</b><span class="fine">Needs ${MIN_COMPARE} graded predictions for both v${prev.id} and v${v.id}. This version has ${ms.length}.</span>`;
+    } else {
+      const pacc = pf.filter(isCorrect).length / pf.length, d = Math.round((acc - pacc) * 100);
+      compare = html`<b class="${d > 0 ? "up" : d < 0 ? "down" : ""}">${d > 0 ? "Improved by " + d : d < 0 ? "Declined by " + Math.abs(d) : "No change, 0"} pts</b><span class="fine">v${prev.id} was ${fmtPct(pacc)} on ${pf.length} predictions</span>`;
+    }
+  }
+  return html`<li class="cl">
+    <div class="cl-meta"><span class="cl-v">v${v.id}</span>${isCurrent ? html`<span class="cl-current">Current version</span>` : ""}<span class="fine">${fmtDay(v.date)}</span></div>
+    <div class="cl-body">
+      <h3>${v.summary}</h3>
+      ${v.changes && v.changes.length ? html`<ul class="bullets">${v.changes.map(t => html`<li>${t}</li>`)}</ul>` : ""}
+      <p class="params">${FACTORS.map(f => html`<span>${PARAM_LABEL[f.key]} <b>${v.weights[f.key]}%</b></span>`)}<span>Draw zone <b>±${v.drawZone}</b></span><span>Scale <b>${v.scale}</b></span></p>
+      <div class="cl-metrics">
+        <div><span class="label">Accuracy${isSampleMode() ? " · sample data" : ""}</span>${ms.length ? html`<b>${fmtPct(acc)}</b><span class="fine">${c} of ${ms.length} graded predictions</span>` : html`<b>—</b><span class="fine">No graded predictions yet</span>`}</div>
+        <div><span class="label">Change from previous version</span>${compare}</div>
+      </div>
+    </div>
+  </li>`;
+}
+function DevelopmentSection() {
+  return html`<section class="block" id="development"><div class="wrap">
+    ${BlockHead({
+      title: "Model development",
+      lede: "A log of every version of the model. Each prediction keeps the version that produced it, so every version is evaluated only on its own predictions.",
+      aside: ui.owner ? html`<button class="btn btn-secondary" type="button" data-action="open" data-panel="version">Add model version</button>` : ""
+    })}
+    ${ui.owner ? VersionForm() : ""}
+    <ol class="changelog">${DATA.modelVersions.slice().reverse().map(VersionEntry)}</ol>
+  </div></section>`;
+}
+
+/* ===== Data & transparency ===== */
+const VARIABLES = [
+  ["Recent form", "Points from the last five Premier League matches: 3 for a win, 1 for a draw, 0 for a loss. Ranges from 0 to 15.", "Match results from FBref or PremierLeague.com"],
+  ["Goals scored average", "Goals scored per match across the last five Premier League matches.", "FBref"],
+  ["Goals allowed average", "Goals conceded per match across the last five Premier League matches. Drives the defensive performance rating.", "FBref"],
+  ["Expected goals (xG) average", "Expected goals created per match across the last five matches. xG estimates how likely each shot was to be scored, based on factors like shot location and type.", "Understat. One xG provider is used throughout, because providers’ models differ."],
+  ["Home advantage", "Whether the team is playing at its own ground.", "Fixture list on PremierLeague.com"]
+];
+const SOURCES = [
+  ["fbref", "FBref", "Match results, goals and team statistics"],
+  ["premierLeague", "PremierLeague.com", "Official fixtures, kickoff times and results"],
+  ["understat", "Understat", "Expected goals (xG) by match"]
+];
+function DataSection() {
+  const links = DATA.site.links;
+  const example = shownMatches().slice().sort(byKickoff).pop();
+  return html`<section class="block" id="data"><div class="wrap">
+    ${BlockHead({
+      title: "Data & transparency",
+      lede: "Every input is a public statistic. Predictions are recorded before matches are played so the results can be evaluated honestly."
+    })}
+    <table class="dtable vtable"><caption>Variables</caption>
+      <thead><tr><th scope="col">Variable</th><th scope="col">Definition</th><th scope="col">Source</th></tr></thead>
+      <tbody>${VARIABLES.map(([n, d, s]) => html`<tr><td>${n}</td><td>${d}</td><td>${s}</td></tr>`)}</tbody>
+    </table>
+    <div class="data-grid">
+      <div>
+        <h3 class="sub-h">Sources</h3>
+        <ul class="sources">${SOURCES.map(([k, n, d]) => html`<li><div><b>${n}</b><span>${d}</span></div>${links[k] ? html`<a href="${links[k]}" target="_blank" rel="noopener noreferrer">${hostOf(links[k])} ↗</a>` : html`<span class="fine">Link not added</span>`}</li>`)}</ul>
+      </div>
+      <div>
+        <h3 class="sub-h">How results are kept honest</h3>
+        <ul class="rules">
+          <li><b>Published before kickoff</b><p>Each prediction stores the time it was saved, and the site does not accept a prediction once the match has started.</p></li>
+          <li><b>Locked once the match starts</b><p>Predictions can only be deleted before kickoff, so incorrect ones cannot be removed afterwards.</p></li>
+          <li><b>Every result counts</b><p>Correct and incorrect predictions both stay on the record. Postponed matches are marked and left out of accuracy.</p></li>
+          <li><b>Versioned model</b><p>Each prediction keeps the model version that made it, so changes to the model never rewrite past results.</p></li>
+        </ul>
+      </div>
+    </div>
+    <div class="export-block">
+      <div>
+        <h3 class="sub-h">Get the data</h3>
+        <p class="fine">Every published prediction with its inputs, model version and result.${isSampleMode() ? " The site is showing sample data right now." : ""}</p>
+        <div class="export">
+          <button class="btn btn-secondary btn-sm" type="button" data-action="copy-csv">Copy as CSV</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-action="copy-json">Copy as JSON</button>
+          <span class="form-msg" id="export-msg" role="status"></span>
+        </div>
+        <textarea class="export-area" id="export-area" readonly hidden aria-label="Exported data"></textarea>
+      </div>
+      <div>
+        <h3 class="sub-h">Record format</h3>
+        <p class="fine" style="margin-bottom:12px">Each prediction is stored as one structured record, so new matches can be added without changing the layout.</p>
+        ${example ? html`<details class="format"><summary>Show an example record</summary><pre class="formula">${JSON.stringify(exportRecord(example), null, 2)}</pre></details>` : ""}
+      </div>
+    </div>
+    <p class="disclaimer">Predictions are statistical estimates produced for research, not guaranteed outcomes. PitchMetrics is not affiliated with the Premier League or any club.</p>
+  </div></section>`;
+}
+function exportRecord(m) {
+  const p = predictionOf(m);
+  const r = { id: m.id, gameweek: m.gameweek, kickoff: m.kickoff, loggedAt: m.loggedAt, modelVersion: m.modelVersion, home: m.home, away: m.away, prediction: { outcome: p.outcome, confidence: p.confidence, probs: p.probs, scores: p.scores, gap: p.gap }, result: m.result };
+  if (m.sample) r.sample = true;
+  return r;
+}
+function exportData() {
+  return { schema: DATA.schema, site: { season: DATA.site.season }, modelVersions: DATA.modelVersions, matches: shownMatches().slice().sort(byKickoff).map(exportRecord) };
+}
+function toCSV() {
+  const cols = ["id", "sample", "gameweek", "kickoff", "logged_at", "model_version", "home_team", "away_team", "home_form", "away_form", "home_scored", "away_scored", "home_allowed", "away_allowed", "home_xg", "away_xg", "home_model_score", "away_model_score", "predicted_outcome", "confidence", "p_home", "p_draw", "p_away", "status", "home_goals", "away_goals", "correct"];
+  const rows = shownMatches().slice().sort(byKickoff).map(m => {
+    const p = predictionOf(m), st = statusOf(m), fin = st === "final";
+    return [m.id, m.sample ? 1 : 0, m.gameweek, m.kickoff, m.loggedAt, m.modelVersion, m.home.name, m.away.name, m.home.form, m.away.form, m.home.scored, m.away.scored, m.home.allowed, m.away.allowed, m.home.xg, m.away.xg,
+      p.scores.home, p.scores.away, OUTCOME_LABEL[p.outcome], p.confidence, p.probs.home, p.probs.draw, p.probs.away, st, fin ? m.result.home : "", fin ? m.result.away : "", fin ? (isCorrect(m) ? 1 : 0) : ""];
+  });
+  const cell = v => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  return [cols].concat(rows).map(r => r.map(cell).join(",")).join("\n");
+}
+
+/* ===== About ===== */
+const INVOLVES = [
+  ["Data collection", "Gathering match statistics from public sources every gameweek."],
+  ["Quantitative analysis", "Turning raw numbers into comparable ratings and testing which ones matter."],
+  ["Model development", "Building a weighted model and improving it in documented versions."],
+  ["Prediction tracking", "Recording every prediction and its confidence before kickoff."],
+  ["Evaluation", "Measuring accuracy overall, by outcome, by confidence and against a simple baseline."]
+];
+function AboutSection() {
+  const a = DATA.site.analyst, gh = DATA.site.links.github;
+  const showAnalyst = Boolean(a.name || a.bio || gh || ui.owner);
+  return html`<section class="block" id="about"><div class="wrap">
+    ${BlockHead({
+      title: "About the project",
+      lede: "PitchMetrics is an independent sports analytics project studying how effectively publicly available football statistics can predict Premier League match outcomes."
+    })}
+    ${ui.owner ? SettingsForm() : ""}
+    <div class="about-grid">
+      <div>
+        <h3 class="sub-h">Research question</h3>
+        <p class="question">How accurately can recent form, goals scored, goals allowed, expected goals and home advantage predict the result of a Premier League match?</p>
+        <div class="prose about-text">
+          <p>The project covers the full research cycle: collecting data, analyzing it quantitatively, developing the model, tracking predictions and evaluating how accurate they turn out to be.</p>
+          <p>Results are published whether the model is right or wrong, and each change to the model is recorded as a new version.</p>
+        </div>
+        ${showAnalyst ? html`<div class="analyst">
+          <span class="label">Analyst</span>
+          ${a.name ? html`<span class="analyst-name">${a.name}</span>` : ""}
+          ${a.bio ? html`<p class="muted">${a.bio}</p>` : ""}
+          ${!a.name && !a.bio ? html`<p class="muted">Add your name and a one-line bio with “Site details”. Only you can see this note.</p>` : ""}
+          ${gh ? html`<a href="${gh}" target="_blank" rel="noopener noreferrer">Project code and notes ↗</a>` : ""}
+        </div>` : ""}
+      </div>
+      <div>
+        <h3 class="sub-h">What the project involves</h3>
+        <dl class="scope">${INVOLVES.map(([t, d]) => html`<div><dt>${t}</dt><dd>${d}</dd></div>`)}</dl>
+      </div>
+    </div>
+  </div></section>`;
+}
+
+/* ===== Footer ===== */
+function Footer() {
+  const gh = DATA.site.links.github;
+  return html`<footer class="site-footer"><div class="wrap">
+    <div class="footer-row">
+      <div class="footer-brand">
+        <a class="brand" href="#top" data-nav="top">${raw(ICON.logo)}<span class="brand-name">PitchMetrics</span></a>
+        <span class="tagline">Independent Sports Analytics Project</span>
+      </div>
+      <nav class="footer-links" aria-label="Project links">
+        ${gh ? html`<a href="${gh}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>` : (ui.owner ? html`<span class="fine">Add a GitHub or portfolio link in Site details.</span>` : "")}
+        <a href="#methodology" data-nav="methodology">Methodology</a>
+        <a href="#data" data-nav="data">Data & transparency</a>
+      </nav>
+    </div>
+    <div class="footer-fine">
+      <span>Model v${currentVersion().id} · ${DATA.site.season} season${DATA.site.analyst.name ? " · Built by " + DATA.site.analyst.name : ""}</span>
+      <span>Statistical estimates, not guaranteed outcomes. Not affiliated with the Premier League or any club.</span>
+    </div>
+  </div></footer>`;
+}
+
+/* ===== Owner forms ===== */
+function Field(id, label, type, o) {
+  o = o || {};
+  const attrs = ["min", "max", "step", "list", "autocomplete", "maxlength", "placeholder"].filter(k => o[k] != null).map(k => `${k}="${esc(o[k])}"`);
+  if (type === "number") attrs.push('inputmode="decimal"');
+  return html`<div class="field"><label for="${id}">${label}</label><input id="${id}" name="${id}" type="${type}" ${raw(attrs.join(" "))} value="${o.value == null ? "" : o.value}">${o.hint ? html`<span class="hint">${o.hint}</span>` : ""}</div>`;
+}
+function TeamFieldset(side) {
+  return html`<fieldset><legend>${raw(`<i class="side-mark ${side === "home" ? "home" : "away"}" aria-hidden="true"></i>`)}${side === "home" ? "Home team" : "Away team"}</legend>
+    ${Field(`lf-${side}-name`, "Team name", "text", { list: "team-list", autocomplete: "off", maxlength: 40 })}
+    <div class="field-row">
+      ${Field(`lf-${side}-form`, "Points (0–15)", "number", { min: 0, max: 15, step: 1 })}
+      ${Field(`lf-${side}-scored`, "Goals scored / game", "number", { min: 0, max: 10, step: "any" })}
+    </div>
+    <div class="field-row">
+      ${Field(`lf-${side}-allowed`, "Goals allowed / game", "number", { min: 0, max: 10, step: "any" })}
+      ${Field(`lf-${side}-xg`, "xG / game", "number", { min: 0, max: 6, step: "any" })}
+    </div>
+  </fieldset>`;
+}
+function LogForm() {
+  const v = currentVersion();
+  const teams = Array.from(new Set(realMatches().flatMap(m => [m.home.name, m.away.name]))).sort();
+  const lastGw = realMatches().reduce((mx, m) => Math.max(mx, Number(m.gameweek) || 0), 0);
+  return html`<form class="form-card" id="panel-log" data-form="log" novalidate hidden>
+    <div class="form-head"><h3>Log a prediction</h3><p>Enter each team’s numbers from its last five Premier League matches. For per-game figures, divide the five-match total by 5. The prediction is saved with model v${v.id}, and it can only be logged before kickoff.${isSampleMode() ? " Saving your first real prediction removes the sample data." : ""}</p></div>
+    <div class="form-grid">
+      ${Field("lf-gw", "Gameweek", "number", { min: 1, max: 38, step: 1, value: lastGw || "", hint: "1 to 38" })}
+      ${Field("lf-kickoff", "Kickoff", "datetime-local", { hint: "Your local time" })}
+    </div>
+    <div class="form-teams">${TeamFieldset("home")}${TeamFieldset("away")}</div>
+    <datalist id="team-list">${teams.map(t => html`<option value="${t}"></option>`)}</datalist>
+    <div class="preview" id="log-preview" aria-live="polite"></div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save prediction</button><button class="btn btn-ghost" type="button" data-action="close" data-panel="log">Cancel</button><span class="form-msg" id="log-msg" role="status"></span></div>
+  </form>`;
+}
+function VersionForm() {
+  const v = currentVersion();
+  return html`<form class="form-card" id="panel-version" data-form="version" novalidate hidden>
+    <div class="form-head"><h3>Add a model version</h3><p>New predictions will use this version. Predictions already logged keep the version they were made with.</p></div>
+    <div class="form-grid">
+      ${Field("vf-id", "Version number", "text", { value: nextVersionId(v.id), maxlength: 12 })}
+      ${Field("vf-date", "Date", "date", { value: todayISO() })}
+    </div>
+    ${Field("vf-summary", "Summary", "text", { maxlength: 140, placeholder: "What is different about this version?" })}
+    <div class="field"><label for="vf-changes">What changed</label><textarea id="vf-changes" name="vf-changes" placeholder="One change per line"></textarea><span class="hint">One change per line.</span></div>
+    <fieldset><legend>Weights</legend>
+      <div class="form-grid">${FACTORS.map(f => Field(`vf-w-${f.key}`, f.label + " (%)", "number", { min: 0, max: 100, step: 1, value: v.weights[f.key] }))}</div>
+      <span class="weights-total" id="vf-total" role="status"></span>
+    </fieldset>
+    <div class="form-grid">
+      ${Field("vf-draw", "Draw zone (± points)", "number", { min: 0, max: 30, step: "any", value: v.drawZone, hint: "A draw is predicted when the scores are this close." })}
+      ${Field("vf-scale", "Confidence scale (points)", "number", { min: 5, max: 80, step: "any", value: v.scale, hint: "Larger values give more cautious confidence figures." })}
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save version</button><button class="btn btn-ghost" type="button" data-action="close" data-panel="version">Cancel</button><span class="form-msg" id="version-msg" role="status"></span></div>
+  </form>`;
+}
+function SettingsForm() {
+  const s = DATA.site;
+  return html`<form class="form-card" id="panel-settings" data-form="settings" novalidate hidden>
+    <div class="form-head"><h3>Site details</h3><p>These appear in the About section, the Data section and the footer.</p></div>
+    <div class="form-grid">
+      ${Field("sf-name", "Your name", "text", { value: s.analyst.name, maxlength: 80 })}
+      ${Field("sf-season", "Season", "text", { value: s.season, maxlength: 20 })}
+    </div>
+    ${Field("sf-bio", "One line about you", "text", { value: s.analyst.bio, maxlength: 200, placeholder: "Optional" })}
+    ${Field("sf-github", "GitHub or portfolio link", "url", { value: s.links.github, placeholder: "https://github.com/your-username" })}
+    <div class="form-grid">
+      ${Field("sf-fbref", "FBref link", "url", { value: s.links.fbref })}
+      ${Field("sf-pl", "PremierLeague.com link", "url", { value: s.links.premierLeague })}
+      ${Field("sf-understat", "Understat link", "url", { value: s.links.understat })}
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save details</button><button class="btn btn-ghost" type="button" data-action="close" data-panel="settings">Cancel</button><span class="form-msg" id="settings-msg" role="status"></span></div>
+  </form>`;
+}
+
+
+/* ===== Play: Title Race (views and controller) ===== */
+const PLAY_KEY = "pitchmetrics-play-v1";
+const SLOT_TEXT = {
+  form: { name: "Recent form", hint: "Points from the last five matches", unit: "pts", fmt: v => String(v) },
+  scored: { name: "Goals scored", hint: "Per game over the last five", unit: "per game", fmt: v => Number(v).toFixed(1) },
+  defense: { name: "Goals allowed", hint: "Per game. Fewer is better", unit: "per game", fmt: v => Number(v).toFixed(1) },
+  xg: { name: "Expected goals", hint: "Quality of chances created", unit: "xG per game", fmt: v => Number(v).toFixed(1) }
+};
+const play = { mode: "daily", name: "Your club", games: { daily: null, practice: null }, record: null, revealing: false, revealAt: 0, timer: 0, histWidth: 0 };
+
+/* ----- helpers ----- */
+function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+function pctWhole(p) { if (p > 0 && p < 0.005) return "under 1%"; if (p < 1 && p > 0.995) return "over 99%"; return Math.round(p * 100) + "%"; }
+const SIMS_TEXT = GAME_SIMS.toLocaleString("en-US");
+const slotDef = key => GAME_SLOTS.find(f => f.key === key);
+const activeGame = () => play.games[play.mode];
+const filledCount = g => GAME_SLOTS.filter(f => g.picks[f.key] != null).length;
+const isComplete = g => filledCount(g) === GAME_SLOTS.length;
+const rivalAt = (g, pos) => g.league.rivals[g.league.order[pos]];
+const canPass = g => !g.played && !isComplete(g) && g.passPos == null && g.pos + 1 < g.league.order.length;
+function canScout(g) {
+  if (g.played || isComplete(g) || g.scoutPos != null || g.pos + 1 >= g.league.order.length) return false;
+  return !(g.passPos != null && filledCount(g) === GAME_SLOTS.length - 1);
+}
+function outcomeOf(g) {
+  if (g.played && !g.outcome) g.outcome = gameOutcome(g.league, g.picks, currentVersion(), play.name);
+  return g.outcome;
+}
+function rivalScores(g) {
+  const v = currentVersion();
+  return g.league.rivals.map(r => ({ name: r.name, score: baseScore(r, v) })).sort((a, b) => b.score - a.score);
+}
+function scoreSoFar(g) {
+  const v = currentVersion();
+  return GAME_SLOTS.reduce((s, f) => s + (g.picks[f.key] != null ? slotPoints(f, g.league.rivals[g.picks[f.key]][f.stat], v) : 0), 0);
+}
+function resultSentence(o, m) {
+  const opp = o.sm.teams[m.opp].name, where = m.home ? "at home" : "away";
+  return m.res === "W" ? `Beat ${opp} ${where}` : m.res === "D" ? `Drew with ${opp} ${where}` : `Lost to ${opp} ${where}`;
+}
+function setText(sel, text) { const el = document.querySelector(sel); if (el) el.textContent = text; }
+function announce(text) {
+  const el = document.getElementById("g-live");
+  if (!el) return;
+  el.textContent = "";
+  setTimeout(() => { el.textContent = text; }, 40);
+}
+const practiceSeed = () => "practice|" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+/* ----- saving (this browser only) ----- */
+function blankRecord() { return { played: 0, titles: 0, invincibles: 0, top4: 0, perfect: 0, bestRank: null, bestPos: null }; }
+const DEFAULT_NAME = "Your club";
+const midName = n => (n === DEFAULT_NAME ? "your club" : n);
+function cleanName(v) { const s = typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, 24) : ""; return s || DEFAULT_NAME; }
+function newGame(mode, seed, date) {
+  return { mode: mode, seed: seed, date: date || null, league: makeLeague(seed), picks: { form: null, scored: null, defense: null, xg: null }, pos: 0, passPos: null, scoutPos: null, played: false, recorded: false, outcome: null };
+}
+function restoreGame(o, mode) {
+  if (!o || typeof o !== "object" || typeof o.seed !== "string" || o.seed.length > 80) return null;
+  const g = newGame(mode, o.seed, typeof o.date === "string" ? o.date : null), order = g.league.order, used = [];
+  const int = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+  for (const f of GAME_SLOTS) {
+    const v = o.picks && o.picks[f.key];
+    if (v == null) continue;
+    if (!order.includes(v) || used.includes(v)) return newGame(mode, o.seed, g.date);
+    g.picks[f.key] = v;
+    used.push(v);
+  }
+  g.pos = int(o.pos, 0, order.length - 1) ? o.pos : 0;
+  g.passPos = int(o.passPos, 0, order.length - 1) ? o.passPos : null;
+  g.scoutPos = int(o.scoutPos, 1, order.length - 1) ? o.scoutPos : null;
+  const expectedPos = used.length + (g.passPos != null ? 1 : 0) - (isComplete(g) ? 1 : 0);
+  const consistent = g.pos === expectedPos && used.every(v => order.indexOf(v) <= g.pos) &&
+    (g.passPos == null || (g.passPos <= g.pos && !used.includes(order[g.passPos]))) && (g.scoutPos == null || g.scoutPos <= g.pos + 1);
+  if (!consistent) return newGame(mode, o.seed, g.date);
+  g.played = o.played === true && isComplete(g);
+  g.recorded = o.recorded === true;
+  return g;
+}
+function initPlay() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(PLAY_KEY) || "null"); } catch (e) { s = null; }
+  if (!s || typeof s !== "object") s = {};
+  play.name = cleanName(s.name);
+  play.record = blankRecord();
+  if (s.record && typeof s.record === "object") {
+    Object.keys(play.record).forEach(k => { const v = s.record[k]; if (Number.isInteger(v) && v >= 0 && v < 1e6) play.record[k] = v; });
+  }
+  const today = todayISO();
+  play.games.daily = (s.daily && s.daily.date === today && s.daily.seed === "daily|" + today && restoreGame(s.daily, "daily")) || newGame("daily", "daily|" + today, today);
+  play.games.practice = restoreGame(s.practice, "practice");
+}
+function savePlay() {
+  const ser = g => g && { mode: g.mode, seed: g.seed, date: g.date, picks: g.picks, pos: g.pos, passPos: g.passPos, scoutPos: g.scoutPos, played: g.played, recorded: g.recorded };
+  const data = { v: 1, name: play.name, record: play.record, daily: ser(play.games.daily), practice: ser(play.games.practice) };
+  try { localStorage.setItem(PLAY_KEY, JSON.stringify(data)); } catch (e) { /* storage unavailable: the game still works for this visit */ }
+}
+function recordGame(g) {
+  if (g.recorded) return;
+  const o = g.outcome, r = play.record;
+  r.played++;
+  if (o.season.pos === 1) r.titles++;
+  if (o.tier.key === "invincible") r.invincibles++;
+  if (o.season.pos <= 4) r.top4++;
+  if (o.rank === 1) r.perfect++;
+  r.bestRank = r.bestRank == null ? o.rank : Math.min(r.bestRank, o.rank);
+  r.bestPos = r.bestPos == null ? o.season.pos : Math.min(r.bestPos, o.season.pos);
+  g.recorded = true;
+}
+
+/* ----- views ----- */
+function PlaySection() {
+  return html`<section class="block" id="play"><div class="wrap">
+    ${BlockHead({
+      title: "Title Race", tag: "Game",
+      lede: "A game built on the PitchMetrics model. Build a club from your rivals’ numbers, then let the model play a full 38-match season. How high can you finish?"
+    })}
+    <div id="play-root">${PlayBody()}</div>
+    <p class="sr-only" id="g-live" aria-live="polite"></p>
+    ${PlayNote()}
+  </div></section>`;
+}
+function PlayBody() {
+  const g = activeGame();
+  outcomeOf(g);
+  const phase = g.played ? (play.revealing ? "reveal" : "done") : isComplete(g) ? "ready" : "draft";
+  return html`${PlayTop(g)}${phase === "draft" ? Draft(g) : phase === "ready" ? Ready(g) : phase === "reveal" ? Reveal(g) : Results(g)}`;
+}
+function PlayTop(g) {
+  const r = play.record, d = play.games.daily;
+  const mode = (m, label) => html`<button class="seg-btn${play.mode === m ? " on" : ""}" type="button" data-action="g-mode" data-mode="${m}" aria-pressed="${String(play.mode === m)}">${label}</button>`;
+  const parts = r.played ? [`${r.played} ${r.played === 1 ? "season" : "seasons"}`, `${r.titles} ${r.titles === 1 ? "title" : "titles"}`, `best draft rank ${ordinal(r.bestRank)}`] : [];
+  return html`<div class="g-top">
+    <div class="seg" role="group" aria-label="Game mode">${mode("daily", `Daily #${Math.max(1, gameDayNumber(d.date))}`)}${mode("practice", "Practice")}</div>
+    <p class="fine">${parts.length ? `Your record in this browser: ${parts.join(" · ")}` : play.mode === "daily" ? "Everyone gets the same draft today. A new one starts at midnight." : "Practice drafts are random. Play as many as you like."}</p>
+  </div>`;
+}
+function HowTo() {
+  return html`<ol class="g-how">
+    <li><b>Take one number from each rival.</b><span>Every round reveals a rival club. Copy one of its four numbers into the matching empty slot of your club.</span></li>
+    <li><b>Use your two lifelines.</b><span>Pass on one club you don’t want, and scout one club ahead before you choose.</span></li>
+    <li><b>Play the season.</b><span>With all four slots filled, the model plays 38 matches against all 19 rivals.</span></li>
+  </ol>`;
+}
+function StatRow(g, r, f, v) {
+  const t = SLOT_TEXT[f.key], val = r[f.stat], pts = slotPoints(f, val, v), w = v.weights[f.key];
+  const filled = g.picks[f.key] != null, share = w ? clamp(pts / w, 0, 1) : 0;
+  return html`<li class="g-stat${filled ? " is-filled" : ""}">
+    <div class="g-stat-name"><b>${t.name}</b><span class="fine">${t.hint}</span></div>
+    <div class="g-stat-val"><span class="g-num">${t.fmt(val)}</span><span class="fine">${t.unit}</span></div>
+    <div class="g-stat-worth"><span class="g-meter" aria-hidden="true"><i style="width:${(share * 100).toFixed(1)}%"></i></span><span class="fine">worth <b>${pts.toFixed(1)}</b> of ${w}</span></div>
+    <div class="g-stat-act">${filled
+      ? html`<span class="g-filled">Slot filled</span>`
+      : html`<button class="btn btn-secondary btn-sm g-take" type="button" data-action="g-take" data-slot="${f.key}" aria-label="Take ${t.name}, ${t.fmt(val)} ${t.unit}, from ${r.name}">Take</button>`}</div>
+  </li>`;
+}
+function Draft(g) {
+  const v = currentVersion(), r = rivalAt(g, g.pos);
+  const scouted = g.scoutPos != null && g.scoutPos > g.pos ? rivalAt(g, g.scoutPos) : null;
+  const passTxt = g.passPos != null ? "Pass used" : "Pass on this club";
+  const scoutTxt = g.scoutPos != null ? "Scout used" : "Scout the next club";
+  return html`${HowTo()}
+  <div class="g-board">
+    <article class="panel g-rival" aria-labelledby="g-rival-name">
+      <div class="g-rival-head">
+        <span class="g-crest" aria-hidden="true">${initials(r.name)}</span>
+        <div><span class="label">Round ${g.pos + 1} · Rival club</span><h3 id="g-rival-name">${r.name}</h3></div>
+      </div>
+      <ul class="g-stats">${GAME_SLOTS.map(f => StatRow(g, r, f, v))}</ul>
+      <div class="g-lifelines">
+        <button class="btn btn-ghost btn-sm g-life" type="button" data-action="g-pass"${raw(canPass(g) ? "" : " disabled")}>${passTxt}</button>
+        <button class="btn btn-ghost btn-sm g-life" type="button" data-action="g-scout"${raw(canScout(g) ? "" : " disabled")}>${scoutTxt}</button>
+        <span class="fine">Each lifeline works once per draft.</span>
+      </div>
+      ${scouted ? html`<div class="g-scout"><span class="label">Scouted · next up</span><b>${scouted.name}</b><span class="g-scout-nums">Form ${scouted.form} · Scored ${fmt1(scouted.scored)} · Allowed ${fmt1(scouted.allowed)} · xG ${fmt1(scouted.xg)}</span></div>` : ""}
+    </article>
+    ${ClubPanel(g)}
+  </div>`;
+}
+function ClubPanel(g) {
+  const v = currentVersion(), rs = rivalScores(g), avg = rs.reduce((s, x) => s + x.score, 0) / rs.length;
+  const rows = GAME_SLOTS.map(f => {
+    const t = SLOT_TEXT[f.key], w = v.weights[f.key], idx = g.picks[f.key];
+    const head = html`<span class="g-slot-name">${t.name} <span class="fine">${w}%</span></span>`;
+    if (idx == null) return html`<li class="g-slot is-empty">${head}<span class="g-slot-empty">Empty</span></li>`;
+    const src = g.league.rivals[idx], val = src[f.stat];
+    return html`<li class="g-slot">${head}<span class="g-slot-val">${t.fmt(val)} <span class="fine">${t.unit}</span></span><span class="g-slot-src fine">from ${src.name}</span><span class="g-slot-pts fine">${slotPoints(f, val, v).toFixed(1)} pts</span></li>`;
+  });
+  return html`<aside class="panel g-club" aria-label="Your club">
+    <div class="g-club-head"><label class="label" for="g-name">Your club · tap the name to rename it</label><div class="g-name-wrap"><input class="g-name" id="g-name" type="text" maxlength="24" autocomplete="off" spellcheck="false" value="${play.name}">${raw(ICON.pencil)}</div></div>
+    <ol class="g-slots">${rows}</ol>
+    <div class="g-total"><div><span class="label">Model score</span><span class="fine">${filledCount(g)} of 4 slots filled · out of ${100 - (v.weights.home || 0)}</span></div><b>${scoreSoFar(g).toFixed(1)}</b></div>
+    <p class="fine">Rival average ${avg.toFixed(1)} · strongest rival ${rs[0].score.toFixed(1)}.</p>
+  </aside>`;
+}
+function Ready(g) {
+  const v = currentVersion(), s = baseScore(clubFromPicks(g.league, g.picks), v), rs = rivalScores(g);
+  const rank = rs.filter(x => x.score > s).length + 1, lead = rs[0];
+  const line = rank === 1 ? `the best on paper. The closest rival is ${lead.name} on ${lead.score.toFixed(1)}.` : `${ordinal(rank)} of 20 on paper. ${lead.name} leads the league on ${lead.score.toFixed(1)}.`;
+  return html`${HowTo()}
+  <div class="g-board">
+    <div class="panel g-ready">
+      <span class="label">Draft complete</span>
+      <h3><span data-club-name>${play.name}</span> is ready for the season</h3>
+      <p>Model score <b>${s.toFixed(1)}</b>, ${line}</p>
+      <p class="fine">Every match is decided by the model’s win, draw and loss probabilities, so the best club on paper can still slip up.</p>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" data-action="g-play">Play the season</button>
+        ${g.mode === "practice" ? html`<button class="btn btn-ghost" type="button" data-action="g-new">Start a new draft</button>` : ""}
+      </div>
+    </div>
+    ${ClubPanel(g)}
+  </div>`;
+}
+function Strip(o, revealed) {
+  return html`<ol class="g-strip" id="g-strip" aria-label="Results by matchday">${o.season.mine.map((m, i) => html`<li class="g-chip r-${m.res}${i < revealed ? " on" : ""}" data-i="${i}"><span aria-hidden="true">${m.res}</span><span class="sr-only">Matchday ${m.md}: ${resultSentence(o, m)}.</span></li>`)}</ol>`;
+}
+function Reveal(g) {
+  const o = g.outcome, n = play.revealAt, t = n ? o.season.track[n - 1] : null;
+  return html`<div class="panel g-season" id="g-season">
+    <div class="g-live">
+      <div><span class="label">Matchday</span><b id="g-md">${n || "–"}</b><span class="fine">of 38</span></div>
+      <div><span class="label">Points</span><b id="g-pts">${t ? t.pts : 0}</b></div>
+      <div><span class="label">Position</span><b id="g-pos">${t ? ordinal(t.pos) : "–"}</b></div>
+    </div>
+    <p class="g-last" id="g-last">${n ? `Matchday ${n}: ${resultSentence(o, o.season.mine[n - 1])}` : "Kick-off. The season is being played…"}</p>
+    <div class="g-strip-wrap">${Strip(o, n)}</div>
+    <div><button class="btn btn-secondary btn-sm" type="button" data-action="g-skip">Skip to the final table</button></div>
+  </div>`;
+}
+function storyLine(o) {
+  const s = o.season, t = o.season.table, name = id => o.sm.teams[id].name;
+  if (s.pos === 1) {
+    const gap = t[0].pts - t[1].pts;
+    return gap ? `${gap} ${gap === 1 ? "point" : "points"} clear of ${name(t[1].team)}.` : `Level on points with ${name(t[1].team)}, ahead on wins.`;
+  }
+  const gap = t[0].pts - s.pts;
+  return gap ? `${gap} ${gap === 1 ? "point" : "points"} behind champions ${name(t[0].team)}.` : `Level on points with champions ${name(t[0].team)}, who won more matches.`;
+}
+function luckNote(o) {
+  const s = o.season, sims = o.sims;
+  if (s.pos === 1 && sims.title < 0.25) return `A lucky title: this club wins the league in only ${pctWhole(sims.title)} of simulated seasons.`;
+  if (s.pos > 1 && sims.title >= 0.5) return `Unlucky: this club wins the league in ${pctWhole(sims.title)} of simulated seasons.`;
+  if (s.pos >= 18 && sims.relegated < 0.25) return `Unlucky: this club goes down in only ${pctWhole(sims.relegated)} of simulated seasons.`;
+  if (s.pos <= sims.avgPos - 3) return `A lucky season: this club’s average finish is ${sims.avgPos.toFixed(1)}.`;
+  if (s.pos >= sims.avgPos + 3) return `An unlucky season: this club’s average finish is ${sims.avgPos.toFixed(1)}.`;
+  return "";
+}
+function Results(g) {
+  const o = g.outcome, s = o.season, luck = luckNote(o);
+  const label = g.mode === "daily" ? `Daily #${Math.max(1, gameDayNumber(g.date))} · ${fmtDay(g.date)}` : "Practice draft";
+  const practiceInProgress = play.games.practice && !play.games.practice.played;
+  return html`<div class="g-result">
+    <div class="g-result-head">
+      <div class="g-result-main">
+        <span class="label">${label}</span>
+        <p class="g-tier g-tier-${o.tier.key}" tabindex="-1">${o.tier.label}</p>
+        <p class="g-tier-sub"><b data-club-name>${o.club.name}</b> finished ${ordinal(s.pos)} of 20 with ${s.pts} points (${s.w} won, ${s.d} drawn, ${s.l} lost), ${storyLine(o)}</p>
+        ${luck ? html`<p class="g-luck">${luck}</p>` : ""}
+      </div>
+      <div class="g-result-actions">
+        <div class="actions">
+          <button class="btn btn-primary" type="button" data-action="g-share">Copy result</button>
+          ${g.mode === "daily"
+            ? html`<button class="btn btn-secondary" type="button" data-action="g-practice">${practiceInProgress ? "Back to practice" : "Play a practice round"}</button>`
+            : html`<button class="btn btn-secondary" type="button" data-action="g-new">Play again</button>`}
+        </div>
+        <span class="form-msg" id="g-msg" role="status"></span>
+        <textarea class="export-area" id="g-share-area" readonly hidden aria-label="Result to copy"></textarea>
+      </div>
+    </div>
+    <dl class="figures g-figs">
+      <div><dt>Draft rank</dt><dd>${ordinal(o.rank)}<small>${o.rank === 1 ? "The perfect draft" : `of ${o.drafts} possible drafts`}</small></dd></div>
+      <div><dt>Expected points</dt><dd>${o.xpts.toFixed(1)}<small>${o.rank === 1 ? "The most possible today" : `Perfect draft ${o.bestXpts.toFixed(1)}`}</small></dd></div>
+      <div><dt>Won the league</dt><dd>${pctWhole(o.sims.title)}<small>of ${SIMS_TEXT} simulated seasons</small></dd></div>
+      <div><dt>Top four</dt><dd>${pctWhole(o.sims.top4)}<small>Average finish ${o.sims.avgPos.toFixed(1)}</small></dd></div>
+    </dl>
+    <section class="g-sec" aria-labelledby="g-season-h">
+      <div class="figure-head"><h3 id="g-season-h">Match by match</h3><span class="fine">W won · D drawn · L lost</span></div>
+      <div class="g-strip-wrap" id="g-strip-wrap">${Strip(o, 38)}<div class="tooltip" hidden></div></div>
+    </section>
+    <div class="g-grid">
+      <div>${LeagueTable(o)}</div>
+      <div>
+        <figure>
+          <div class="figure-head"><h3>The same season, replayed ${SIMS_TEXT} times</h3><span class="fine">Finishing position</span></div>
+          <div class="chart-wrap" id="g-hist"></div>
+          <figcaption>How often <span data-club-name="mid">${midName(o.club.name)}</span> finishes in each position when the same season is simulated ${SIMS_TEXT} times. The darker bar is this season’s finish.</figcaption>
+        </figure>
+        ${HistTable(o)}
+        ${PerfectDraft(g, o)}
+      </div>
+    </div>
+  </div>`;
+}
+function HistTable(o) {
+  const rows = [];
+  for (let p = 1; p < o.sims.hist.length; p++) if (o.sims.hist[p]) rows.push(html`<tr><td>${ordinal(p)}</td><td>${o.sims.hist[p]}</td><td>${pctWhole(o.sims.hist[p] / o.sims.runs)}</td></tr>`);
+  return html`<details class="format g-hist-table"><summary>Show the numbers</summary>
+    <table class="dtable"><thead><tr><th scope="col">Finish</th><th scope="col">Seasons</th><th scope="col">Share</th></tr></thead><tbody>${rows}</tbody></table>
+  </details>`;
+}
+function LeagueTable(o) {
+  return html`<table class="dtable g-table"><caption>Final table</caption>
+    <thead><tr><th scope="col">Pos</th><th scope="col" class="g-club-col">Club</th><th scope="col"><abbr title="Won">W</abbr></th><th scope="col"><abbr title="Drawn">D</abbr></th><th scope="col"><abbr title="Lost">L</abbr></th><th scope="col"><abbr title="Points">Pts</abbr></th><th scope="col" class="g-model-col"><abbr title="Model score before home advantage">Model</abbr></th></tr></thead>
+    <tbody>${o.season.table.map(r => html`<tr class="${r.team === 0 ? "is-you" : ""}${r.pos === 4 || r.pos === 17 ? " zone-line" : ""}">
+      <td>${r.pos}</td>
+      <td class="g-club-col">${r.team === 0 ? html`<span data-club-name>${o.club.name}</span> <span class="g-you">You</span>` : o.sm.teams[r.team].name}</td>
+      <td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td class="em">${r.pts}</td>
+      <td class="g-model-col">${o.sm.base[r.team].toFixed(1)}</td>
+    </tr>`)}</tbody>
+  </table>
+  <p class="fine table-note">The model predicts results, not scores, so there is no goal difference: level clubs are split by wins, then by model score. Lines mark the top four and the bottom three.</p>`;
+}
+function PerfectDraft(g, o) {
+  const best = o.rank === 1 ? g.picks : o.best.picks, five = g.league.order.slice(0, 5);
+  const usedBest = GAME_SLOTS.map(f => best[f.key]), skipped = five.findIndex(i => !usedBest.includes(i));
+  const passNote = skipped >= 0 && skipped < 4 ? `It passes on ${rivalAt(g, skipped).name} in round ${skipped + 1}.` : "It doesn’t need the pass.";
+  const v = currentVersion(), bestScore = baseScore(clubFromPicks(g.league, best), v);
+  return html`<div class="g-perfect">
+    <table class="dtable"><caption>${o.rank === 1 ? "You found the perfect draft" : "The perfect draft"}</caption>
+      <thead><tr><th scope="col">Slot</th><th scope="col">Yours</th><th scope="col">Perfect</th></tr></thead>
+      <tbody>${GAME_SLOTS.map(f => {
+        const t = SLOT_TEXT[f.key], mine = g.league.rivals[g.picks[f.key]], top = g.league.rivals[best[f.key]];
+        const same = mine[f.stat] === top[f.stat];
+        return html`<tr><td>${t.name}</td><td>${t.fmt(mine[f.stat])}<span class="g-src">${mine.name}</span></td><td class="${same ? "" : "em"}">${t.fmt(top[f.stat])}<span class="g-src">${top.name}</span></td></tr>`;
+      })}</tbody>
+      <tfoot><tr><td>Model score</td><td>${o.score.toFixed(1)}</td><td>${bestScore.toFixed(1)}</td></tr></tfoot>
+    </table>
+    <p class="fine table-note">The best club anyone could build from ${g.mode === "daily" ? "today’s" : "this draft’s"} five rival clubs, with one pass. ${passNote}</p>
+  </div>`;
+}
+function PlayNote() {
+  const v = currentVersion();
+  return html`<div class="g-note">
+    <h3 class="sub-h">About the game</h3>
+    <ul class="bullets">
+      <li>The rival clubs and their numbers are generated at random and are fictional. They are not real teams or real statistics.</li>
+      <li>Every match uses the published model, version ${v.id}: the same weights, the ±${v.drawZone}-point draw zone and the same probability formula as the real predictions. Home advantage counts for every club in its home matches, so it isn’t part of the draft.</li>
+      <li>A season is one random draw from those probabilities, so luck plays a part. The ${SIMS_TEXT} simulated seasons show how often each finish happens.</li>
+      <li>Everyone gets the same daily draft. Games are saved only in this browser, and nothing here counts toward the track record.</li>
+    </ul>
+  </div>`;
+}
+
+/* ----- charts ----- */
+function showTip(wrap, tip, html_, x, yTop) {
+  tip.innerHTML = html_;
+  tip.hidden = false;
+  const tw = tip.offsetWidth, W = wrap.clientWidth;
+  tip.style.left = Math.min(Math.max(0, x - tw / 2), Math.max(0, W - tw)) + "px";
+  tip.style.top = Math.max(0, yTop - tip.offsetHeight - 10) + "px";
+}
+function drawHistogram() {
+  const el = document.getElementById("g-hist"), g = activeGame();
+  if (!el || !g || !g.outcome) return;
+  const o = g.outcome, hist = o.sims.hist, runs = o.sims.runs, n = hist.length - 1, mine = o.season.pos;
+  const width = Math.max(260, Math.floor(el.clientWidth));
+  play.histWidth = width;
+  const narrow = width < 480, H = narrow ? 180 : 210, M = { t: 12, r: 4, b: 30, l: 40 };
+  const w = width - M.l - M.r, h = H - M.t - M.b;
+  const maxShare = Math.max.apply(null, hist.slice(1)) / runs;
+  const step = maxShare > 0.5 ? 0.25 : maxShare > 0.2 ? 0.1 : 0.05;
+  const top = Math.max(step, Math.ceil(maxShare / step - 1e-9) * step);
+  const band = w / n, bw = Math.min(24, Math.max(4, band - 2)), y = v => M.t + h - (v / top) * h;
+  const bar = (x, yv, bw_, r) => {
+    const bh = M.t + h - yv;
+    if (bh <= 0) return "";
+    const rr = Math.min(r, bh, bw_ / 2), b = (M.t + h).toFixed(1);
+    return `M${x.toFixed(1)} ${b}V${(yv + rr).toFixed(1)}Q${x.toFixed(1)} ${yv.toFixed(1)} ${(x + rr).toFixed(1)} ${yv.toFixed(1)}H${(x + bw_ - rr).toFixed(1)}Q${(x + bw_).toFixed(1)} ${yv.toFixed(1)} ${(x + bw_).toFixed(1)} ${(yv + rr).toFixed(1)}V${b}Z`;
+  };
+  let s = `<svg viewBox="0 0 ${width} ${H}" width="${width}" height="${H}" role="img" aria-label="Finishing positions across ${SIMS_TEXT} simulated seasons: won the league in ${pctWhole(o.sims.title)}, top four in ${pctWhole(o.sims.top4)}, average finish ${o.sims.avgPos.toFixed(1)}. This season: ${ordinal(mine)}.">`;
+  for (let t = 0; t <= top + 1e-9; t += step) {
+    s += `<line class="${t === 0 ? "c-axis" : "c-grid"}" x1="${M.l}" x2="${M.l + w}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/>`;
+    s += `<text class="c-tick" x="${M.l - 8}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${Math.round(t * 100)}%</text>`;
+  }
+  for (let p = 1; p <= n; p++) {
+    const share = hist[p] / runs, cx = M.l + band * (p - 1) + band / 2, x = cx - bw / 2;
+    if (hist[p]) s += `<path class="c-bar${p === mine ? " on" : ""}" d="${bar(x, Math.min(y(share), M.t + h - 1), bw, 4)}"/>`;
+    if (!narrow || p === 1 || p % 5 === 0 || p === mine) s += `<text class="c-tick${p === mine ? " mine" : ""}" x="${cx.toFixed(1)}" y="${H - 10}" text-anchor="middle">${p}</text>`;
+  }
+  for (let p = 1; p <= n; p++) s += `<rect class="c-hit" data-p="${p}" x="${(M.l + band * (p - 1)).toFixed(1)}" y="${M.t}" width="${band.toFixed(1)}" height="${h}"/>`;
+  s += "</svg>";
+  el.innerHTML = s + '<div class="tooltip" hidden></div>';
+  const tip = el.querySelector(".tooltip");
+  el.querySelectorAll(".c-hit").forEach(r => {
+    const show = () => {
+      const p = +r.dataset.p, c = hist[p];
+      el.querySelectorAll(".c-hit").forEach(x => x.classList.toggle("on", x === r));
+      showTip(el, tip, `<b>${pctWhole(c / runs)}</b> of seasons<br>Finished ${ordinal(p)}: ${c} of ${SIMS_TEXT}${p === mine ? "<br>This season’s finish" : ""}`, M.l + band * (p - 0.5), y(c / runs));
+    };
+    r.addEventListener("pointerenter", show);
+    r.addEventListener("pointerdown", show);
+    r.addEventListener("pointerleave", () => { tip.hidden = true; r.classList.remove("on"); });
+  });
+}
+function bindStripTips() {
+  const wrap = document.getElementById("g-strip-wrap"), g = activeGame();
+  if (!wrap || !g || !g.outcome) return;
+  const tip = wrap.querySelector(".tooltip"), o = g.outcome;
+  wrap.querySelectorAll(".g-chip").forEach(li => {
+    const show = () => {
+      const m = o.season.mine[+li.dataset.i], t = o.season.track[+li.dataset.i];
+      const box = li.getBoundingClientRect(), wb = wrap.getBoundingClientRect();
+      tip.textContent = "";
+      const b = document.createElement("b");
+      b.textContent = `Matchday ${m.md}`;
+      tip.append(b, document.createElement("br"), resultSentence(o, m), document.createElement("br"), `${t.pts} pts · ${ordinal(t.pos)} after this match`);
+      tip.hidden = false;
+      const tw = tip.offsetWidth, above = box.top - wb.top - tip.offsetHeight - 8;
+      tip.style.left = Math.min(Math.max(0, box.left - wb.left + box.width / 2 - tw / 2), Math.max(0, wb.width - tw)) + "px";
+      tip.style.top = (above >= 0 ? above : box.bottom - wb.top + 8) + "px";
+      li.classList.add("hover");
+    };
+    li.addEventListener("pointerenter", show);
+    li.addEventListener("pointerdown", show);
+    li.addEventListener("pointerleave", () => { tip.hidden = true; li.classList.remove("hover"); });
+  });
+}
+
+/* ----- controller ----- */
+function renderPlay(focusSel) {
+  const root = document.getElementById("play-root");
+  if (!root) return;
+  root.innerHTML = PlayBody().s;
+  afterPlayRender();
+  if (focusSel) {
+    const el = root.querySelector(focusSel);
+    if (el && !el.disabled) el.focus({ preventScroll: true });
+  }
+}
+function afterPlayRender() { drawHistogram(); bindStripTips(); }
+function keepInView() {
+  const root = document.getElementById("play-root");
+  if (!root) return;
+  const top = root.getBoundingClientRect().top;
+  if (top < 0 || top > window.innerHeight * 0.6) root.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+}
+function takeSlot(key) {
+  const g = activeGame(), f = slotDef(key);
+  if (!g || !f || g.played || g.picks[key] != null) return;
+  const r = rivalAt(g, g.pos), t = SLOT_TEXT[key];
+  g.picks[key] = g.league.order[g.pos];
+  const done = isComplete(g);
+  if (!done) g.pos++;
+  savePlay();
+  renderPlay(done ? '[data-action="g-play"]' : ".g-take");
+  announce(`${t.name} ${t.fmt(r[f.stat])} taken from ${r.name}. ` + (done ? "Your club is complete." : `Next rival: ${rivalAt(g, g.pos).name}.`));
+}
+function passClub() {
+  const g = activeGame();
+  if (!g || !canPass(g)) return;
+  const r = rivalAt(g, g.pos);
+  g.passPos = g.pos;
+  g.pos++;
+  savePlay();
+  renderPlay(".g-take");
+  announce(`Passed on ${r.name}. Next rival: ${rivalAt(g, g.pos).name}.`);
+}
+function scoutNext() {
+  const g = activeGame();
+  if (!g || !canScout(g)) return;
+  g.scoutPos = g.pos + 1;
+  savePlay();
+  renderPlay(".g-take");
+  const n = rivalAt(g, g.scoutPos);
+  announce(`Next up: ${n.name}. Form ${n.form}, scored ${fmt1(n.scored)}, allowed ${fmt1(n.allowed)}, xG ${fmt1(n.xg)}.`);
+}
+function finalText(g) {
+  const o = g.outcome, s = o.season;
+  return `${o.tier.label}. ${o.club.name} finished ${ordinal(s.pos)} with ${s.pts} points. Draft rank ${ordinal(o.rank)} of ${o.drafts}.`;
+}
+function startSeason() {
+  const g = activeGame();
+  if (!g || g.played || !isComplete(g)) return;
+  g.played = true;
+  outcomeOf(g);
+  recordGame(g);
+  savePlay();
+  if (reduceMotion) { renderPlay(".g-tier"); keepInView(); announce(finalText(g)); return; }
+  play.revealing = true;
+  play.revealAt = 0;
+  renderPlay('[data-action="g-skip"]');
+  keepInView();
+  play.timer = setTimeout(revealStep, 450);
+}
+function revealStep() {
+  const g = activeGame();
+  if (!play.revealing || !g || !g.outcome) return;
+  if (play.revealAt >= 38) return finishReveal();
+  play.revealAt++;
+  const o = g.outcome, i = play.revealAt - 1, t = o.season.track[i];
+  const chip = document.querySelector(`#g-strip li[data-i="${i}"]`);
+  if (chip) chip.classList.add("on");
+  setText("#g-md", String(i + 1));
+  setText("#g-pts", String(t.pts));
+  setText("#g-pos", ordinal(t.pos));
+  setText("#g-last", `Matchday ${i + 1}: ${resultSentence(o, o.season.mine[i])}`);
+  play.timer = setTimeout(revealStep, play.revealAt >= 38 ? 700 : 70);
+}
+function finishReveal(quiet) {
+  clearTimeout(play.timer);
+  if (!play.revealing) return;
+  play.revealing = false;
+  play.revealAt = 0;
+  if (quiet) return;
+  renderPlay(".g-tier");
+  announce(finalText(activeGame()));
+}
+function setMode(m) {
+  if (m !== "daily" && m !== "practice") return;
+  finishReveal(true);
+  play.mode = m;
+  if (m === "practice" && !play.games.practice) play.games.practice = newGame("practice", practiceSeed());
+  savePlay();
+  renderPlay(`[data-mode="${m}"]`);
+}
+function newPractice(resume) {
+  finishReveal(true);
+  play.mode = "practice";
+  const p = play.games.practice;
+  if (!(resume && p && !p.played)) play.games.practice = newGame("practice", practiceSeed());
+  savePlay();
+  renderPlay(".g-take");
+  keepInView();
+  announce("Practice draft. Round " + (play.games.practice.pos + 1) + ": " + rivalAt(play.games.practice, play.games.practice.pos).name + ".");
+}
+function shareUrl() {
+  try { if (/^https?:$/.test(location.protocol) && !/claude/i.test(location.hostname)) return location.origin + location.pathname + "#play"; } catch (e) { /* no address to share */ }
+  return "";
+}
+function shareText(g) {
+  const o = g.outcome, s = o.season;
+  return [
+    g.mode === "daily" ? `PitchMetrics Title Race · Daily #${Math.max(1, gameDayNumber(g.date))}` : "PitchMetrics Title Race · Practice",
+    `${o.tier.label}: ${ordinal(s.pos)} of 20 with ${s.pts} points (W${s.w} D${s.d} L${s.l})`,
+    `Draft rank ${o.rank} of ${o.drafts} · won the league in ${pctWhole(o.sims.title)} of ${SIMS_TEXT} simulated seasons`,
+    shareUrl()
+  ].filter(Boolean).join("\n");
+}
+function shareResult() {
+  const g = activeGame();
+  if (!g || !g.outcome) return;
+  const text = shareText(g), msg = document.getElementById("g-msg");
+  const fallback = () => {
+    const area = document.getElementById("g-share-area");
+    if (area) { area.hidden = false; area.value = text; area.focus(); area.select(); }
+    setMsg(msg, "Copying is blocked here, so the result is selected below. Press Ctrl+C or ⌘C to copy it.", "err");
+  };
+  if (!navigator.clipboard || !navigator.clipboard.writeText) return fallback();
+  navigator.clipboard.writeText(text).then(() => setMsg(msg, "Result copied. Paste it anywhere.", "ok"), fallback);
+}
+function setClubName(value, commit) {
+  play.name = cleanName(value);
+  ["daily", "practice"].forEach(k => { const g = play.games[k]; if (g && g.outcome) g.outcome.club.name = play.name; });
+  document.querySelectorAll("[data-club-name]").forEach(el => { el.textContent = el.dataset.clubName === "mid" ? midName(play.name) : play.name; });
+  if (commit) {
+    const input = document.getElementById("g-name");
+    if (input && input.value !== play.name) input.value = play.name;
+    savePlay();
+  }
+}
+function playAction(btn) {
+  switch (btn.dataset.action) {
+    case "g-mode": setMode(btn.dataset.mode); break;
+    case "g-take": takeSlot(btn.dataset.slot); break;
+    case "g-pass": passClub(); break;
+    case "g-scout": scoutNext(); break;
+    case "g-play": startSeason(); break;
+    case "g-skip": finishReveal(); break;
+    case "g-new": newPractice(false); break;
+    case "g-practice": newPractice(true); break;
+    case "g-share": shareResult(); break;
+  }
+}
+initPlay();
+
+
+/* ===== Form logic ===== */
+const valueOf = id => { const el = document.getElementById(id); return el ? el.value.trim() : ""; };
+const numberOf = id => { const s = valueOf(id); return s === "" ? NaN : Number(s); };
+function readLogForm() {
+  const team = side => ({ name: valueOf(`lf-${side}-name`).replace(/\s+/g, " "), form: numberOf(`lf-${side}-form`), scored: numberOf(`lf-${side}-scored`), allowed: numberOf(`lf-${side}-allowed`), xg: numberOf(`lf-${side}-xg`) });
+  return { gameweek: numberOf("lf-gw"), kickoff: valueOf("lf-kickoff"), home: team("home"), away: team("away") };
+}
+const statsComplete = t => [t.form, t.scored, t.allowed, t.xg].every(Number.isFinite);
+const cleanTeam = t => ({ name: t.name, form: Math.round(t.form), scored: Math.round(t.scored * 100) / 100, allowed: Math.round(t.allowed * 100) / 100, xg: Math.round(t.xg * 100) / 100 });
+function validateLog(f) {
+  if (!Number.isInteger(f.gameweek) || f.gameweek < 1 || f.gameweek > 38) return "Enter a gameweek from 1 to 38.";
+  if (!f.kickoff) return "Add the kickoff date and time.";
+  const ko = new Date(f.kickoff);
+  if (isNaN(ko)) return "The kickoff date isn’t valid.";
+  if (ko.getTime() <= Date.now()) return "That kickoff time has passed. Predictions have to be logged before the match starts.";
+  for (const side of ["home", "away"]) {
+    const t = f[side];
+    if (!t.name) return `Enter the ${side} team’s name.`;
+    if (!Number.isInteger(t.form) || t.form < 0 || t.form > 15) return `Points for the ${side} team must be a whole number from 0 to 15.`;
+    if (t.form === 14) return `14 points isn’t possible from five matches. Check the ${side} team’s results.`;
+    for (const [k, lab] of [["scored", "goals scored"], ["allowed", "goals allowed"], ["xg", "xG"]]) {
+      if (!Number.isFinite(t[k]) || t[k] < 0 || t[k] > 10) return `Enter the ${side} team’s ${lab} per game (0 to 10).`;
+    }
+  }
+  if (f.home.name.toLowerCase() === f.away.name.toLowerCase()) return "The home and away teams must be different.";
+  const dup = realMatches().some(m => m.home.name.toLowerCase() === f.home.name.toLowerCase() && m.away.name.toLowerCase() === f.away.name.toLowerCase() && Math.abs(Date.parse(m.kickoff) - ko.getTime()) < 36 * 3600e3);
+  if (dup) return "This match is already logged.";
+  return null;
+}
+function updateLogPreview() {
+  const box = document.getElementById("log-preview");
+  if (!box) return;
+  const f = readLogForm();
+  if (!statsComplete(f.home) || !statsComplete(f.away)) {
+    box.innerHTML = html`<span class="label">Preview</span><p class="fine">Fill in both teams’ numbers to see the model’s prediction before you save it.</p>`.s;
+    return;
+  }
+  const v = currentVersion();
+  const home = Object.assign(cleanTeam(f.home), { name: f.home.name || "Home team" });
+  const away = Object.assign(cleanTeam(f.away), { name: f.away.name || "Away team" });
+  const p = predict(home, away, v);
+  const fake = { home: home, away: away, modelVersion: v.id, prediction: p };
+  box.innerHTML = html`<span class="label">Preview · model v${v.id}</span>${Call(p)}${ProbBar(p.probs)}<p class="fine">Model scores: ${home.name} ${p.scores.home.toFixed(1)}, ${away.name} ${p.scores.away.toFixed(1)} (gap ${signed(p.gap)}).</p><p class="fine">${explain(fake).join(" ")}</p>`.s;
+}
+function updateVersionTotal() {
+  const el = document.getElementById("vf-total");
+  if (!el) return;
+  const total = FACTORS.reduce((s, f) => s + (numberOf(`vf-w-${f.key}`) || 0), 0);
+  el.textContent = `Total: ${total}%` + (total === 100 ? "" : " (must be 100%)");
+  el.className = "weights-total " + (total === 100 ? "good" : "bad");
+}
+function setMsg(el, text, kind) {
+  if (!el) return;
+  el.textContent = text;
+  el.className = "form-msg" + (kind ? " " + kind : "");
+}
+const clone = o => JSON.parse(JSON.stringify(o));
+const newId = () => "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+async function submitLog() {
+  const f = readLogForm(), msg = $("#log-msg"), err = validateLog(f);
+  if (err) return setMsg(msg, err, "err");
+  const v = currentVersion(), home = cleanTeam(f.home), away = cleanTeam(f.away), p = predict(home, away, v);
+  const rec = {
+    id: newId(), gameweek: f.gameweek, kickoff: new Date(f.kickoff).toISOString(), loggedAt: new Date().toISOString(),
+    modelVersion: v.id, home: home, away: away,
+    prediction: { outcome: p.outcome, confidence: p.confidence, probs: p.probs, scores: p.scores, gap: p.gap }, result: null
+  };
+  const next = clone(DATA);
+  next.matches = next.matches.filter(m => !m.sample).concat([rec]);
+  const values = {};
+  document.querySelectorAll("#panel-log input").forEach(i => { values[i.id] = i.value; });
+  await commit(next, msg, "Saved. Updating the page…", { kind: "log", id: rec.id, values: values });
+}
+async function submitVersion() {
+  const msg = $("#version-msg");
+  const id = valueOf("vf-id"), date = valueOf("vf-date"), summary = valueOf("vf-summary");
+  const changes = (document.getElementById("vf-changes").value || "").split("\n").map(s => s.trim()).filter(Boolean);
+  const weights = {};
+  FACTORS.forEach(f => { weights[f.key] = numberOf(`vf-w-${f.key}`); });
+  const drawZone = numberOf("vf-draw"), scale = numberOf("vf-scale");
+  if (!/^[0-9A-Za-z][0-9A-Za-z.\-]{0,11}$/.test(id)) return setMsg(msg, "Enter a version number such as 1.1.", "err");
+  if (DATA.modelVersions.some(v => v.id === id)) return setMsg(msg, `Version ${id} already exists.`, "err");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return setMsg(msg, "Pick the date of this version.", "err");
+  if (!summary) return setMsg(msg, "Add a one-line summary of the version.", "err");
+  if (!FACTORS.every(f => Number.isInteger(weights[f.key]) && weights[f.key] >= 0)) return setMsg(msg, "Each weight must be a whole number of 0 or more.", "err");
+  if (FACTORS.reduce((s, f) => s + weights[f.key], 0) !== 100) return setMsg(msg, "The weights must add up to 100.", "err");
+  if (!(drawZone >= 0 && drawZone <= 30)) return setMsg(msg, "The draw zone must be between 0 and 30 points.", "err");
+  if (!(scale >= 5 && scale <= 80)) return setMsg(msg, "The confidence scale must be between 5 and 80.", "err");
+  const next = clone(DATA);
+  next.modelVersions.push({ id: id, date: date, summary: summary, changes: changes, weights: weights, drawZone: drawZone, scale: scale, goalCap: currentVersion().goalCap || 3 });
+  await commit(next, msg, "Version saved. Updating the page…");
+}
+async function submitSettings() {
+  const msg = $("#settings-msg");
+  const urls = { github: valueOf("sf-github"), fbref: valueOf("sf-fbref"), premierLeague: valueOf("sf-pl"), understat: valueOf("sf-understat") };
+  for (const k of Object.keys(urls)) if (urls[k] && !/^https?:\/\/[^\s<>"]+$/i.test(urls[k])) return setMsg(msg, "Links must start with https:// and contain no spaces.", "err");
+  const next = clone(DATA);
+  next.site.analyst = { name: valueOf("sf-name"), bio: valueOf("sf-bio") };
+  next.site.season = valueOf("sf-season") || DATA.site.season;
+  next.site.links = urls;
+  await commit(next, msg, "Saved. Updating the page…");
+}
+function changeMatch(id, msgEl, fn, okText) {
+  const next = clone(DATA), m = next.matches.find(x => x.id === id);
+  if (!m) return;
+  const err = fn(m, next);
+  if (err) return setMsg(msgEl, err, "err");
+  return commit(next, msgEl, okText);
+}
+function saveResult(id) {
+  const msg = document.getElementById("msg-" + id);
+  const h = numberOf("rh-" + id), a = numberOf("ra-" + id);
+  if (!Number.isInteger(h) || !Number.isInteger(a) || h < 0 || a < 0 || h > 20 || a > 20) return setMsg(msg, "Enter both scores as whole numbers.", "err");
+  changeMatch(id, msg, m => { if (Date.parse(m.kickoff) > Date.now()) return "The match hasn’t kicked off yet."; m.result = { home: h, away: a }; }, "Result saved. Updating the page…");
+}
+
+/* ===== Saving (the page republishes itself) ===== */
+const SITE_DESCRIPTION = "PitchMetrics is an independent research project that predicts Premier League match outcomes from public statistics and publishes how accurate the predictions turn out to be.";
+const FAVICON = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#0f6b4c" stroke-width="1.8"><rect x="1.8" y="4.8" width="20.4" height="14.4" rx="1.6"/><path d="M12 4.8v14.4M1.8 9.2h3.2v5.6H1.8M22.2 9.2H19v5.6h3.2"/><circle cx="12" cy="12" r="2.6"/></svg>');
+/* A complete, standalone page for a public web host such as GitHub Pages. It shows the site read-only. */
+function buildStaticDocument(next) {
+  const json = JSON.stringify(next).replace(/</g, "\\u003c");
+  const css = document.getElementById("pm-style").textContent;
+  const js = document.getElementById("pm-app").textContent;
+  return '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
+    "<title>PitchMetrics</title>\n" +
+    '<meta name="description" content="' + SITE_DESCRIPTION + '">\n' +
+    '<meta property="og:type" content="website">\n<meta property="og:title" content="PitchMetrics">\n' +
+    '<meta property="og:description" content="' + SITE_DESCRIPTION + '">\n' +
+    '<link rel="icon" href="' + FAVICON + '">\n' +
+    "<style>" + RESET_CSS + "</style>\n" +
+    '<style id="pm-style">' + css + "</style>\n" +
+    '<link rel="stylesheet" href="' + FONT_HREF + '">\n</head>\n<body>\n' +
+    '<div id="app">' + LOADING_HTML + "</div>\n" +
+    '<script type="application/json" id="pm-data">' + json + "<\/script>\n" +
+    '<script id="pm-app">' + js + "<\/script>\n</body>\n</html>\n";
+}
+function exportSite() {
+  const msg = $("#owner-msg"), file = buildStaticDocument(DATA);
+  const copyInstead = () => {
+    navigator.clipboard.writeText(file).then(
+      () => setMsg(msg, "Downloading isn’t available here, so the website file was copied instead. In GitHub, open index.html, click the pencil icon, replace everything with a paste, and commit.", "ok"),
+      () => setMsg(msg, "This view can’t download or copy the website file. Ask Claude for a fresh copy.", "err"));
+  };
+  if (!ui.downloads) return copyInstead();
+  ui.downloads.save({ filename: "index.html", data: file }).then(
+    () => setMsg(msg, "Saved index.html. Upload it to your GitHub repository to update the public site.", "ok"),
+    e => { if (e && e.code === "declined") setMsg(msg, "Download cancelled.", ""); else copyInstead(); });
+}
+function buildDocument(next) {
+  const json = JSON.stringify(next).replace(/</g, "\\u003c");
+  const css = document.getElementById("pm-style").textContent;
+  const js = document.getElementById("pm-app").textContent;
+  return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>' + RESET_CSS + "</style></head><body>\n" +
+    "<title>PitchMetrics</title>\n" +
+    '<style id="pm-style">' + css + "</style>\n" +
+    '<link rel="stylesheet" href="' + FONT_HREF + '">\n' +
+    '<div id="app">' + LOADING_HTML + "</div>\n" +
+    '<script type="application/json" id="pm-data">' + json + "<\/script>\n" +
+    '<script id="pm-app">' + js + "<\/script>\n</body></html>";
+}
+function setBusy(on) {
+  ui.busy = on;
+  app.querySelectorAll("form button, .owner-row button, .rowner button, .banner-owner button").forEach(b => { b.disabled = on; });
+}
+async function commit(next, msgEl, okText, draft) {
+  if (ui.busy) return false;
+  if (!ui.artifact) { setMsg(msgEl, "Saving isn’t available in this view.", "err"); return false; }
+  setBusy(true);
+  setMsg(msgEl, "Saving…");
+  if (draft) { try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* storage unavailable */ } }
+  try {
+    await ui.artifact.publish(buildDocument(next));
+    setMsg(msgEl, okText, "ok");
+    return true;
+  } catch (e) {
+    setBusy(false);
+    const code = e && e.code;
+    const readOnly = ["not_writer", "not_granted", "consent_required", "capability_disabled", "not_declared"].includes(code);
+    const text = code === "conflict" ? "A newer version of the site was saved somewhere else, so this change wasn’t saved. The page is reloading to that version."
+      : readOnly ? "This view can’t save changes."
+      : code === "rate_limited" ? "Too many saves in a short time. Wait a minute, then try again."
+      : code === "too_large" ? "The site’s data has grown too large to save."
+      : "The save didn’t go through. Try again in a moment.";
+    setMsg(msgEl, text, "err");
+    return false;
+  }
+}
+function restoreDraft() {
+  let d = null;
+  try { d = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || "null"); } catch (e) { d = null; }
+  if (!d) return;
+  try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
+  if (d.kind !== "log" || DATA.matches.some(m => m.id === d.id)) return;
+  openPanel("log", false);
+  Object.keys(d.values || {}).forEach(id => { const el = document.getElementById(id); if (el) el.value = d.values[id]; });
+  updateLogPreview();
+  setMsg($("#log-msg"), "This prediction wasn’t saved last time. Check the details and save it again.", "err");
+}
+
+/* ===== Interaction ===== */
+function goTo(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+}
+function toggleMenu(force) {
+  const nav = $("#site-nav"), btn = $(".menu-btn");
+  if (!nav || !btn) return;
+  const open = force == null ? !nav.classList.contains("open") : force;
+  nav.classList.toggle("open", open);
+  btn.setAttribute("aria-expanded", String(open));
+}
+function selectMatch(id, scroll) {
+  const m = DATA.matches.find(x => x.id === id);
+  if (!m) return;
+  ui.selectedId = id;
+  const sel = $("#match-select"), body = $("#analysis-body");
+  if (sel) sel.value = id;
+  if (body) body.innerHTML = AnalysisBody(m).s;
+  if (scroll) goTo("analysis");
+}
+function openPanel(name, scroll) {
+  const el = document.getElementById("panel-" + name);
+  if (!el) return;
+  el.hidden = false;
+  if (scroll !== false) el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  const first = el.querySelector("input, textarea");
+  if (first) setTimeout(() => first.focus({ preventScroll: true }), reduceMotion ? 0 : 350);
+}
+function closePanel(name) { const el = document.getElementById("panel-" + name); if (el) el.hidden = true; }
+function confirmStep(btn, text) {
+  if (btn.dataset.armed === "1") return true;
+  const original = btn.textContent;
+  btn.dataset.armed = "1";
+  btn.textContent = text;
+  setTimeout(() => { if (btn.isConnected && !ui.busy) { btn.dataset.armed = ""; btn.textContent = original; } }, 4000);
+  return false;
+}
+async function copyText(text, msgEl, label) {
+  try {
+    await navigator.clipboard.writeText(text);
+    setMsg(msgEl, label + " copied to your clipboard.", "ok");
+  } catch (e) {
+    const area = $("#export-area");
+    area.hidden = false; area.value = text; area.focus(); area.select();
+    setMsg(msgEl, "Copying is blocked here. The data is selected below, so press Ctrl+C or ⌘C.", "err");
+  }
+}
+function onClick(e) {
+  const nav = e.target.closest("a[data-nav]");
+  if (nav) { e.preventDefault(); toggleMenu(false); goTo(nav.dataset.nav); return; }
+  const btn = e.target.closest("[data-action]");
+  if (!btn || btn.disabled) return;
+  const id = btn.dataset.id, act = btn.dataset.action, rowMsg = id ? document.getElementById("msg-" + id) : null;
+  if (act.indexOf("g-") === 0) { playAction(btn); return; }
+  switch (act) {
+    case "menu": toggleMenu(); break;
+    case "analyze": selectMatch(id, true); break;
+    case "toggle-results": ui.showAll = !ui.showAll; $("#results-list").innerHTML = ResultsList(shownMatches()).s; break;
+    case "open": openPanel(btn.dataset.panel); break;
+    case "close": closePanel(btn.dataset.panel); break;
+    case "save-result": saveResult(id); break;
+    case "delete":
+      if (confirmStep(btn, "Click again to delete")) changeMatch(id, rowMsg, (m, next) => {
+        if (Date.parse(m.kickoff) <= Date.now()) return "Kickoff has passed, so this prediction stays on the record.";
+        next.matches = next.matches.filter(x => x.id !== id);
+      }, "Deleted. Updating the page…");
+      break;
+    case "postpone":
+      if (confirmStep(btn, "Click again to confirm")) changeMatch(id, rowMsg, m => { m.result = { status: "postponed" }; }, "Marked as postponed. Updating the page…");
+      break;
+    case "reopen":
+      if (confirmStep(btn, "Click again to reopen")) changeMatch(id, rowMsg, m => { m.result = null; }, "Reopened. Updating the page…");
+      break;
+    case "remove-sample":
+      if (confirmStep(btn, "Click again to remove")) { const next = clone(DATA); next.matches = next.matches.filter(m => !m.sample); commit(next, $("#owner-msg"), "Sample data removed. Updating the page…"); }
+      break;
+    case "copy-csv": copyText(toCSV(), $("#export-msg"), "CSV"); break;
+    case "copy-json": copyText(JSON.stringify(exportData(), null, 2), $("#export-msg"), "JSON"); break;
+    case "export-site": exportSite(); break;
+  }
+}
+function onInput(e) {
+  if (e.target.id === "g-name") { setClubName(e.target.value, false); return; }
+  if (e.target.closest("#panel-log")) updateLogPreview();
+  if (e.target.closest("#panel-version")) updateVersionTotal();
+}
+function onChange(e) {
+  if (e.target.id === "match-select") selectMatch(e.target.value, false);
+  if (e.target.id === "g-name") setClubName(e.target.value, true);
+}
+function onSubmit(e) {
+  const form = e.target.closest("form[data-form]");
+  if (!form) return;
+  e.preventDefault();
+  if (ui.busy) return;
+  ({ log: submitLog, version: submitVersion, settings: submitSettings })[form.dataset.form]();
+}
+function setupNavObserver() {
+  if (ui.navObserver) ui.navObserver.disconnect();
+  if (!("IntersectionObserver" in window)) return;
+  const links = Array.from(document.querySelectorAll(".nav a[data-nav]"));
+  ui.navObserver = new IntersectionObserver(entries => {
+    entries.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle("active", a.dataset.nav === en.target.id)); });
+  }, { rootMargin: "-40% 0px -55% 0px" });
+  NAV.forEach(([id]) => { const s = document.getElementById(id); if (s) ui.navObserver.observe(s); });
+}
+
+/* ===== Render & boot ===== */
+function render() {
+  app.innerHTML = html`${Header()}${SampleBanner()}${OwnerBar()}<main id="main">${Hero()}${PredictionsSection()}${TrackRecordSection()}${AnalysisSection()}${PlaySection()}${MethodologySection()}${DevelopmentSection()}${DataSection()}${AboutSection()}</main>${Footer()}`.s;
+  drawChart();
+  afterPlayRender();
+  setupNavObserver();
+  updateLogPreview();
+  updateVersionTotal();
+}
+app.addEventListener("click", onClick);
+app.addEventListener("input", onInput);
+app.addEventListener("change", onChange);
+app.addEventListener("submit", onSubmit);
+let resizeFrame = 0;
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(() => {
+    const el = document.getElementById("acc-chart");
+    if (el && Math.floor(el.clientWidth) !== ui.chartWidth) drawChart();
+    const gh = document.getElementById("g-hist");
+    if (gh && Math.max(260, Math.floor(gh.clientWidth)) !== play.histWidth) drawHistogram();
+  });
+});
+
+render();
+if (location.hash && /^#[a-z]+$/.test(location.hash)) setTimeout(() => goTo(location.hash.slice(1)), 60);
+
+if (window.__PM_TEST__) window.__pm = { DATA, predict, explain, summarize, trackStats, timelineSeries, buildDocument, buildStaticDocument, toCSV, cutPoint, shownMatches, ui, render, play, makeLeague, gameOutcome, allDrafts, renderPlay, shareText };
+
+(async function detectOwner() {
+  if (!window.claude || typeof window.claude.use !== "function") return;
+  try {
+    const [user, artifact, downloads] = await Promise.all([window.claude.use("user"), window.claude.use("artifact"), window.claude.use("downloads").catch(() => null)]);
+    if (!user || !artifact) return;
+    if (!(await user.canEdit())) return;
+    ui.owner = true;
+    ui.artifact = artifact;
+    ui.downloads = downloads;
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+    restoreDraft();
+  } catch (e) { /* stay read-only */ }
+})();
+})();
+</script>
+</body>
+</html>
